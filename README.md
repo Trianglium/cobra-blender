@@ -8,6 +8,7 @@ A toolset for blender allowing the import and export of models, textures and ani
 ### Installation
 - Get the latest version: [`Download ZIP`](https://github.com/HENDRIX-ZT2/cobra-blender/archive/master.zip).
 - To install with the addon installer in Blender, click `File` > `User Preferences` > `Add-ons` > `Install Add-ons from File` and select the ZIP you just downloaded.
+- pyffi 2.2.4.dev3 must be installed to blender's bundled python directory. It should reside here: `C:\Program Files\Blender Foundation\blender-2.79b-windows64\2.79\python\lib\site-packages\pyffi`
 
 
 ### How To Use
