@@ -6,24 +6,30 @@ A toolset for blender allowing the import and export of models, textures and ani
 
 
 ### Installation
-- Get the latest version: [`Download ZIP`](https://github.com/HENDRIX-ZT2/cobra-blender/archive/master.zip).
+- Get the latest release [here](https://github.com/OpenNaja/cobra-blender/releases).
 - To install with the addon installer in Blender, click `File` > `User Preferences` > `Add-ons` > `Install Add-ons from File` and select the ZIP you just downloaded.
 - pyffi 2.2.4.dev3 must be installed to blender's bundled python directory. It should reside here: `C:\Program Files\Blender Foundation\blender-2.79b-windows64\2.79\python\lib\site-packages\pyffi`
-
+Since blender's built-in python does not include the package manager `pip`, you have several options:
+- install via `pip` as described [here](https://github.com/OpenNaja/cobra-tools) and then copy your system python's `pyffi` folder into blender python's `site-packages` folder
+- install `pip` for blender and use it to install pyffi 2.2.4.dev3 directly, eg. following this [tutorial](http://www.codeplastic.com/2019/03/12/how-to-install-python-modules-in-blender/).
 
 ### How To Use
 
 #### Importing Models
 - `File` > `Import` > `Cobra Model (.MDL2)`.
+- n.b. using MDL2 normals will crash blender when importing stock models with a fur shader.
 
 #### Exporting Models
 - `File` > `Export` > `Cobra Model (.MDL2)`.
+- Select the source model, the exported model will be created in a subfolder called `export`.
+- Model names are crucial; object naming convention has to be enforced.
 
 ### Known Limitations
 - Same model & LOD count.
+- Fur shader fin generation is not functional for custom models, but stock fins can be edited.
 - No shader edits.
 - No armature edits.
-- No animation export.
+- No animation export. Animation import is limited to Banis files and only works on some files.
 
 ### Disclaimer
 Not all model files are supported at this time. Some may crash on import or export. Try loading the OVL and unpacking with reverse sets setting changed in the OVL tool if the import does not work the first time.
