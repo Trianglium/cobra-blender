@@ -24,6 +24,9 @@ A toolset for blender allowing the import and export of models, textures and ani
 - No armature edits.
 - No animation export.
 
+### Disclaimer
+Not all model files are supported at this time. Some may crash on import or export. Try loading the OVL and unpacking with reverse sets setting changed in the OVL tool if the import does not work the first time.
+
 ### Legal Notice
 - This tool is developed under 'fair use' by enthusiasts and is not affiliated with Universal© or Frontier® in any form.
 - Use at your own risk. This tool may cause damage to you, your equipment or your data.
