@@ -5,11 +5,8 @@ import struct
 import bpy
 import mathutils
 
-from pyffi_ext.formats.ms2 import Ms2Format
-
-from .utils import io, matrix_util
-
-# from .common_tmd import errors, log_error, correction_local, correction_global, name_to_blender, name_to_tmd
+from .utils import matrix_util
+from .pyffi_ext.formats.ms2 import Ms2Format
 
 def bone_name_for_blender(n):
 	if "def_r_" in n:
@@ -24,19 +21,6 @@ def bone_name_for_ovl(n):
 	if n.endswith(".L"):
 		n = n[:-2].replace("def_", "def_l_")
 	return n
-	
-def ovl_bones(b_armature_data):
-	# todo fix this on goliath frog, messes up due to srb bone
-	
-	# first just get the roots, then extend it
-	roots = [bone for bone in b_armature_data.bones if not bone.parent]
-	# this_level = []
-	out_bones = roots
-	# next_level = []
-	for bone in roots:
-		out_bones += [child for child in bone.children]
-	
-	return [b.name for b in out_bones]
 	
 def get_armature():
 	src_armatures = [ob for ob in bpy.data.objects if type(ob.data) == bpy.types.Armature]
@@ -71,7 +55,6 @@ def save(operator, context, filepath = '', export_anims = False, pad_anims = Fal
 		for pbone in b_armature_ob.pose.bones:
 			pbone.matrix_basis = mathutils.Matrix()
 		bpy.context.scene.update()
-		# bone_names = ovl_bones(b_armature_ob.data)
 		bone_names = data.bone_names
 		# used to get index from bone name for faster weights
 		bones_table = dict( (bone_name_for_blender(bone_name), bone_i) for bone_i, bone_name in enumerate(bone_names) )

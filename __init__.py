@@ -9,7 +9,7 @@ bl_info = {	"name": "Frontier's Cobra Engine Formats (JWE, Planet Zoo)",
 			"tracker_url": "https://github.com/HENDRIX-ZT2/cobra-blender/issues/new",
 			"category": "Import-Export"}
 import bpy
-from bpy.props import StringProperty, BoolProperty, CollectionProperty
+from bpy.props import StringProperty, BoolProperty, CollectionProperty, IntProperty
 from bpy_extras.io_utils import ImportHelper, ExportHelper
 from bpy_extras.object_utils import AddObjectHelper, object_data_add
 import bpy.utils.previews
@@ -61,6 +61,23 @@ class ExportMDL2(bpy.types.Operator, ExportHelper):
 			self.report({"ERROR"}, error)
 		return {'FINISHED'}
 		
+class StripShells(bpy.types.Operator):
+	"""Remove duplicate faces for a faster export and to avoid blender hiccups"""
+	bl_idname = "object.strip_shells"
+	bl_label = "Strip Shells"
+	bl_options = {'REGISTER', 'UNDO'}
+
+	num_shells = IntProperty(
+			name="Shell Count",
+			description="Assumed number of shells",
+			min=1, max=10,
+			default=6, )
+			
+	def execute(self, context):
+		from .utils import shell
+		shell.strip_shells_wrapper(self.num_shells)
+		return {'FINISHED'}
+
 #Add to a menu
 def menu_func_export(self, context):
 	self.layout.operator(ExportMDL2.bl_idname, text="Cobra Model (.MDL2)", icon_value=preview_collection["frontier.png"].icon_id)
@@ -68,6 +85,9 @@ def menu_func_export(self, context):
 def menu_func_import(self, context):
 	self.layout.operator(ImportMDL2.bl_idname, text="Cobra Model (.MDL2)", icon_value=preview_collection["frontier.png"].icon_id)
 	self.layout.operator(ImportBani.bl_idname, text="Cobra Baked Anim (.bani)", icon_value=preview_collection["frontier.png"].icon_id)
+
+def menu_func_object(self, context):
+	self.layout.operator(StripShells.bl_idname, text="Strip Shells", icon_value=preview_collection["frontier.png"].icon_id)
 
 def register():
 	import os
@@ -79,6 +99,7 @@ def register():
 	
 	bpy.types.INFO_MT_file_import.append(menu_func_import)
 	bpy.types.INFO_MT_file_export.append(menu_func_export)
+	bpy.types.VIEW3D_PT_tools_object.append(menu_func_object)
 	
 def unregister():
 	bpy.utils.previews.remove(preview_collection)
@@ -87,6 +108,7 @@ def unregister():
 
 	bpy.types.INFO_MT_file_import.remove(menu_func_import)
 	bpy.types.INFO_MT_file_export.remove(menu_func_export)
+	bpy.types.VIEW3D_PT_tools_object.remove(menu_func_object)
 
 if __name__ == "__main__":
 	register()

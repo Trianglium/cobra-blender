@@ -5,8 +5,20 @@ import math
 import bpy
 import mathutils
 
-from .utils import io, matrix_util
+from .utils import matrix_util
+from .pyffi_ext.formats.bani import BaniFormat
 
+def load_bani(file_path):
+	"""Loads a bani from the given file path"""
+	print("Importing {0}".format(file_path))
+
+	data = BaniFormat.Data()
+	# open file for binary reading
+	with open(file_path, "rb") as stream:
+		data.inspect_quick(stream)
+		data.read(stream, data, file=file_path)
+	return data
+	
 def get_armature():
 	src_armatures = [ob for ob in bpy.data.objects if type(ob.data) == bpy.types.Armature]
 	#do we have armatures?
@@ -38,15 +50,11 @@ def ovl_bones(b_armature_data):
 		bone_names.remove("srb")
 		bone_names.append("srb")
 	return bone_names
-
-def add_bones(out_bones, bones):
-	out_bones += [child for child in bone.children]
 	
 def load(operator, context, files = [], filepath = "", set_fps=False):
 	starttime = time.clock()
 	dirname, filename = os.path.split(filepath)
-	banis = io.BaniFile()
-	data = banis.load(filepath)
+	data = load_bani(filepath)
 
 	# data 0 has various scales and counts
 	anim_length = data.header.data_0.animation_length

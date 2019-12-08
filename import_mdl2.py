@@ -5,7 +5,19 @@ import math
 import bpy
 import mathutils
 
-from .utils import io, matrix_util
+from .utils import matrix_util
+from .pyffi_ext.formats.ms2 import Ms2Format
+
+def load_mdl2(file_path):
+	"""Loads a mdl2 from the given file path"""
+	print("Importing {0}".format(file_path))
+
+	data = Ms2Format.Data()
+	# open file for binary reading
+	with open(file_path, "rb") as stream:
+		data.inspect_quick(stream)
+		data.read(stream, data, file=file_path)
+	return data
 
 def bone_name_for_blender(n):
 	if "def_r_" in n:
@@ -157,8 +169,7 @@ def select_layer(layer_nr): return tuple(i == layer_nr for i in range(0, 20))
 	
 def load(operator, context, filepath = "", use_custom_normals = False):
 	mdl2_name = os.path.basename(filepath)
-	mdl2 = io.Mdl2File()
-	data = mdl2.load(filepath)
+	data = load_mdl2(filepath)
 	
 	errors = []
 	# try:

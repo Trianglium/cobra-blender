@@ -14,6 +14,11 @@ def copy_ob(src_obj):
 	bpy.context.scene.objects.active = new_obj
 	return new_obj
 	
+def strip_shells_wrapper(shell_count=6):
+	for ob in bpy.context.selected_objects:
+		if ob.type == "MESH":
+			strip_shells(ob, shell_count)
+
 def strip_shells(ob, shell_count=6):
 	
 	me = ob.data
@@ -143,12 +148,14 @@ def build_uv(ob, bm):
 			
 	print("Finished UV generation")
 	
-src_ob = bpy.data.objects["gray_wolf_male.mdl2_LOD0_model22"]
-build_fins(src_ob)
-src_ob = bpy.data.objects["gray_wolf_male.mdl2_LOD1_model23"]
-build_fins(src_ob)
+if __name__ == "__main__":
 
-# src_ob = bpy.data.objects["gray_wolf_male.mdl2_LOD0_model22"]
-# strip_shells(src_ob)
-# src_ob = bpy.data.objects["gray_wolf_male.mdl2_LOD0_model24"]
-# strip_shells(src_ob)
+	src_ob = bpy.data.objects["gray_wolf_male.mdl2_LOD0_model22"]
+	build_fins(src_ob)
+	src_ob = bpy.data.objects["gray_wolf_male.mdl2_LOD1_model23"]
+	build_fins(src_ob)
+
+	# src_ob = bpy.data.objects["gray_wolf_male.mdl2_LOD0_model22"]
+	# strip_shells(src_ob)
+	# src_ob = bpy.data.objects["gray_wolf_male.mdl2_LOD0_model24"]
+	# strip_shells(src_ob)
