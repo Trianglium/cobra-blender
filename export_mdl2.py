@@ -5,7 +5,7 @@ import struct
 import bpy
 import mathutils
 
-from pyffi.formats.ms2 import Ms2Format
+from pyffi_ext.formats.ms2 import Ms2Format
 
 from .utils import io, matrix_util
 

@@ -1,5 +1,5 @@
-from pyffi.formats.ms2 import Ms2Format
-from pyffi.formats.bani import BaniFormat
+from pyffi_ext.formats.ms2 import Ms2Format
+from pyffi_ext.formats.bani import BaniFormat
 		
 class Mdl2File:
 
