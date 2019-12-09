@@ -24,6 +24,12 @@ Since blender's built-in python does not include the package manager `pip`, you 
 - Select the source model, the exported model will be created in a subfolder called `export`.
 - Model names are crucial; object naming convention has to be enforced.
 
+#### Brand New Models
+When using new models instead of editing existing ones you must add some custom properties before exporting them.
+![Imgur](https://i.imgur.com/4vmFAZy.png)
+
+please set these two properties to match the settings of the stock mesh you are replacing.
+
 ### Known Limitations
 - Same model & LOD count.
 - Fur shader fin generation is not functional for custom models, but stock fins can be edited.
