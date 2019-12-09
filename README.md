@@ -31,6 +31,10 @@ When using new models instead of editing existing ones you must add some custom 
 
 please set these two properties to match the settings of the stock mesh you are replacing.
 
+#### UV MAP Setup
+Please ensure that if you add vertices to an edited stock mesh that you remove the UV1 through UV3 and then re-add them.
+
+
 ### Known Limitations
 - Same model & LOD count.
 - Fur shader fin generation is not functional for custom models, but stock fins can be edited.
