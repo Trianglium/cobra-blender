@@ -31,6 +31,14 @@ When using new models instead of editing existing ones you must add some custom 
 
 please set these two properties to match the settings of the stock mesh you are replacing.
 
+If your model is intended to be furry for Planet Zoo then you must also set the mesh up to be a replacement for the shell mesh. make sure it has the same flag and shell count as a stock shell mesh. You will then need to create a Fur Length vertex group on your custom mesh and weight paint it. you only need to wieght paint with small values close to 0 like 0.01-0.05 for it to have reasonable fur length ingame. 
+
+![Imgur](https://i.imgur.com/vHskqtP.png)
+
+At this time the Fur method using the Fin meshes are not able to be created from scratch. One could remove most of the the fin mesh leaving a single polygon if the mesh interferes with your brand new mesh. 
+
+If you are making edits to a stock model you can also edit the fin mesh to fit the edited geometry and that will work at this time. 
+
 #### UV MAP Setup
 Please ensure that if you add vertices to an edited stock mesh that you remove the UV1 through UV3 and then re-add them.
 
