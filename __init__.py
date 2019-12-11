@@ -37,6 +37,7 @@ class ImportMDL2(bpy.types.Operator, ImportHelper):
 	filename_ext = ".MDL2"
 	filter_glob = StringProperty(default="*.MDL2", options={'HIDDEN'})
 	use_custom_normals = BoolProperty(name="Use MDL2 Normals", description="Preserves the original shading of a MDL2.", default=False)
+	mirror_mesh = BoolProperty(name="Mirror Meshes", description="Mirrors models. Careful, sometimes bones don't match!", default=False)
 	
 	def execute(self, context):
 		from . import import_mdl2

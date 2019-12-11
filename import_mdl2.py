@@ -3,6 +3,7 @@ import time
 import math
 
 import bpy
+# import bmesh
 import mathutils
 
 from .utils import matrix_util
@@ -167,13 +168,17 @@ def mesh_from_data(name, verts, faces, wireframe = True):
 	
 def select_layer(layer_nr): return tuple(i == layer_nr for i in range(0, 20))
 	
-def load(operator, context, filepath = "", use_custom_normals = False):
+def load(operator, context, filepath = "", use_custom_normals = False, mirror_mesh = False):
 	mdl2_name = os.path.basename(filepath)
 	data = load_mdl2(filepath)
 	
+	# else operators choke on objects in hidden layers
+	bpy.context.scene.layers = [True] * 20
+
 	errors = []
 	# try:
 	b_armature_obj = import_armature(data)
+	b_armature_obj.layers = select_layer(10)
 	# except:
 		# print("Armature failed")
 	print("data.models",data.mdl2_header.models)
@@ -190,9 +195,6 @@ def load(operator, context, filepath = "", use_custom_normals = False):
 		
 		ob.layers = select_layer(lod_i)
 		create_material(ob, model.material)
-		# link to armature
-		if data.bone_info:
-			append_armature_modifier(ob, b_armature_obj)
 		
 		# set uv data
 		# todo: get UV count
@@ -201,13 +203,13 @@ def load(operator, context, filepath = "", use_custom_normals = False):
 			me.uv_textures.new("UV"+str(uv_i))
 			me.uv_layers[-1].data.foreach_set("uv", [uv for pair in [uvs[l.vertex_index] for l in me.loops] for uv in (pair[0], 1-pair[1])])
 		
-		# todo: get vcol count, if it is vcol
-		for col_i in range(2):
-			vcols = model.colors[col_i]
-			me.vertex_colors.new("RGB"+str(col_i))
-			me.vertex_colors[-1].data.foreach_set("color", [c for col in [vcols[l.vertex_index] for l in me.loops] for c in (col.r/255, col.g/255, col.b/255)])
-			me.vertex_colors.new("AAA"+str(col_i))
-			me.vertex_colors[-1].data.foreach_set("color", [c for col in [vcols[l.vertex_index] for l in me.loops] for c in (col.a/255, col.a/255, col.a/255)])
+		# # todo: get vcol count, if it is vcol
+		# for col_i in range(2):
+		# 	vcols = model.colors[col_i]
+		# 	me.vertex_colors.new("RGB"+str(col_i))
+		# 	me.vertex_colors[-1].data.foreach_set("color", [c for col in [vcols[l.vertex_index] for l in me.loops] for c in (col.r/255, col.g/255, col.b/255)])
+		# 	me.vertex_colors.new("AAA"+str(col_i))
+		# 	me.vertex_colors[-1].data.foreach_set("color", [c for col in [vcols[l.vertex_index] for l in me.loops] for c in (col.a/255, col.a/255, col.a/255)])
 		
 		# me.vertex_colors.new("tangents")
 		# me.vertex_colors[-1].data.foreach_set("color", [c for col in [model.tangents[l.vertex_index] for l in me.loops] for c in col])
@@ -237,6 +239,39 @@ def load(operator, context, filepath = "", use_custom_normals = False):
 		if use_custom_normals:
 			me.use_auto_smooth = True
 			me.normals_split_custom_set(no_array)
+		# else:
+		# # no operator, but bmesh
+		# 	bm = bmesh.new()
+		# 	bm.from_mesh(me)
+		# 	bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=0.001)
+		# 	bm.to_mesh(me)
+		# 	me.update()
+		# 	bm.clear()
+		# 	bm.free()
+		
+		bpy.ops.object.mode_set(mode='EDIT')
+		if mirror_mesh:
+			bpy.ops.mesh.bisect(plane_co=(0,0,0), plane_no=(1,0,0), clear_inner=True)
+			bpy.ops.mesh.select_all(action='SELECT')
+			mod = ob.modifiers.new('Mirror', 'MIRROR')
+			mod.use_clip = True
+			mod.use_mirror_merge = True
+			mod.use_mirror_vertex_groups = True
+			mod.use_x = True
+			mod.merge_threshold = 0.001
+		bpy.ops.mesh.tris_convert_to_quads()
+		if not use_custom_normals:
+			bpy.ops.mesh.remove_doubles(threshold = 0.0001, use_unselected = False)
+		try:
+			bpy.ops.uv.seams_from_islands()
+		except:
+			print(ob.name+" has no UV coordinates!")
+		bpy.ops.object.mode_set(mode='OBJECT')
+
+		# link to armature, only after mirror so the order is good and weights are mirrored
+		if data.bone_info:
+			append_armature_modifier(ob, b_armature_obj)
+
 			
 	success = '\nFinished MS2 Import'
 	print(success)
