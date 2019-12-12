@@ -76,7 +76,24 @@ class StripShells(bpy.types.Operator):
 			
 	def execute(self, context):
 		from .utils import shell
-		shell.strip_shells_wrapper(self.num_shells)
+		try:
+			shell.strip_shells_wrapper(self.num_shells)
+		except Exception as err:
+			self.report({"ERROR"}, str(err))
+		return {'FINISHED'}
+
+class CreateFins(bpy.types.Operator):
+	"""Create fins from current base geometry"""
+	bl_idname = "object.create_fins"
+	bl_label = "Create Fins"
+	bl_options = {'REGISTER', 'UNDO'}
+			
+	def execute(self, context):
+		from .utils import shell
+		try:
+			shell.create_fins_wrapper()
+		except Exception as err:
+			self.report({"ERROR"}, str(err))
 		return {'FINISHED'}
 
 #Add to a menu
@@ -89,6 +106,7 @@ def menu_func_import(self, context):
 
 def menu_func_object(self, context):
 	self.layout.operator(StripShells.bl_idname, text="Strip Shells", icon_value=preview_collection["frontier.png"].icon_id)
+	self.layout.operator(CreateFins.bl_idname, text="Create Fins", icon_value=preview_collection["frontier.png"].icon_id)
 
 def register():
 	import os

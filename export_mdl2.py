@@ -42,9 +42,11 @@ def ensure_tri_modifier(ob):
 	else:
 		ob.modifiers.new('Triangulate', 'TRIANGULATE')
 	
-def save(operator, context, filepath = '', export_anims = False, pad_anims = False):
+def save(operator, context, filepath = ''):
 	errors = []
-	
+	if not os.path.isfile(filepath):
+		errors.append( "{} does not exist. You must open an existing MDL2 file for exporting.".format(filepath) )
+		return errors
 	data = Ms2Format.Data()
 	# open file for binary reading
 	with open(filepath, "rb") as stream:
@@ -61,6 +63,11 @@ def save(operator, context, filepath = '', export_anims = False, pad_anims = Fal
 		# used to get index from bone name for faster weights
 		bones_table = dict( (bone_name_for_blender(bone_name), bone_i) for bone_i, bone_name in enumerate(bone_names) )
 		
+		# ensure that these are initialized
+		for model in data.mdl2_header.models:
+			model.tri_indices = []
+			model.verts = []
+
 		for ob in bpy.data.objects:
 			if type(ob.data) == bpy.types.Mesh:
 				print("\nNext mesh...")
@@ -176,7 +183,12 @@ def save(operator, context, filepath = '', export_anims = False, pad_anims = Fal
 				print("count_reused",count_reused)
 				
 				out_tris = list(tris)
-				shell_count = ob["add_shells"]
+				# set shell count if not present
+				if "add_shells" in ob:
+					shell_count = ob["add_shells"]
+				else:
+					shell_count = 0
+					ob["add_shells"] = 0
 				print("Got to add shells",shell_count)
 				for shell in range(shell_count):
 					print("Shell",shell)
@@ -187,9 +199,13 @@ def save(operator, context, filepath = '', export_anims = False, pad_anims = Fal
 				model.tris = out_tris
 				if unweighted_vertices:
 					print("unweighted_vertices",unweighted_vertices)
-				# print(len(model.verts), len(me.vertices))
-				# for mdl2_vert, b_vert in zip(model.verts, me.vertices):
-					# mdl2_vert.position = b_vert.co
+
+		# check if any is empty
+		for i, model in enumerate(data.mdl2_header.models):
+			if not model.tri_indices or not model.verts:
+				errors.append( "MDL2 Modeldata #{} has not been populated. \nEnsure that the name of the blender model for that number follows the naming convention.".format(i) )
+				return errors
+
 		# write modified data
 		data.write(stream, data, file=filepath)
 	# success = '\nFinished Mdl2 Export in %.2f seconds\n' %(time.clock()-starttime)
