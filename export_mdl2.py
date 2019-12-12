@@ -8,6 +8,8 @@ import mathutils
 from .utils import matrix_util
 from .pyffi_ext.formats.ms2 import Ms2Format
 
+MAX_USHORT = 65535
+
 def bone_name_for_blender(n):
 	if "def_r_" in n:
 		n = n.replace("def_r_", "def_")+".R"
@@ -163,7 +165,9 @@ def save(operator, context, filepath = '', export_anims = False, pad_anims = Fal
 							elif b_loop.vertex_index not in unweighted_vertices:
 								# print("Sum of weights",sw)
 								unweighted_vertices.append(b_loop.vertex_index)
-						# todo: do the usual split verts stuff once properly implemented
+							if v_index > MAX_USHORT:
+								errors.append("{} has too many MDL2 verts. The limit is {}. \nBlender vertices have to be duplicated on every UV seam, hence the increase.".format(ob.name, MAX_USHORT))
+								return errors
 						tri.append(v_index)
 					tris.append( tri )
 							
