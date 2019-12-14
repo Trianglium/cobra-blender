@@ -52,6 +52,7 @@ def import_armature(data):
 		# b_armature_data.niftools.axis_up = NifOp.props.axis_up
 		b_armature_obj = create_ob(armature_name, b_armature_data)
 		b_armature_obj.show_x_ray = True
+		b_armature_obj.layers = select_layer(10)
 		bone_names = [bone_name_for_blender(n) for n in data.bone_names]
 		# make armature editable and create bones
 		bpy.ops.object.mode_set(mode='EDIT', toggle=False)
@@ -178,7 +179,6 @@ def load(operator, context, filepath = "", use_custom_normals = False, mirror_me
 	errors = []
 	# try:
 	b_armature_obj = import_armature(data)
-	b_armature_obj.layers = select_layer(10)
 	# except:
 		# print("Armature failed")
 	print("data.models",data.mdl2_header.models)
