@@ -29,6 +29,22 @@ class ImportBani(bpy.types.Operator, ImportHelper):
 		keywords = self.as_keywords(ignore=("axis_forward", "axis_up", "filter_glob"))
 		return import_bani.load(self, context, **keywords)
 
+class ImportMatcol(bpy.types.Operator, ImportHelper):
+	"""Import from Matcol file format (.MATERIALCOLLECTION)"""
+	bl_idname = "import_scene.cobra_matcol"
+	bl_label = 'Import MATERIALCOLLECTION'
+	bl_options = {'UNDO'}
+	filename_ext = ".materialcollection"
+	# filter_glob = StringProperty(default="*.materialcollection", options={'HIDDEN'})
+
+	def execute(self, context):
+		from . import import_matcol
+		keywords = self.as_keywords(ignore=("axis_forward", "axis_up", "filter_glob"))
+		errors = import_matcol.load(self, context, **keywords)
+		for error in errors:
+			self.report({"ERROR"}, error)
+		return {'FINISHED'}
+
 class ImportMDL2(bpy.types.Operator, ImportHelper):
 	"""Import from MDL2 file format (.MDL2)"""
 	bl_idname = "import_scene.cobra_mdl2"
@@ -101,6 +117,7 @@ def menu_func_export(self, context):
 	self.layout.operator(ExportMDL2.bl_idname, text="Cobra Model (.MDL2)", icon_value=preview_collection["frontier.png"].icon_id)
 
 def menu_func_import(self, context):
+	self.layout.operator(ImportMatcol.bl_idname, text="Cobra Material (.MATERIALCOLLECTION)", icon_value=preview_collection["frontier.png"].icon_id)
 	self.layout.operator(ImportMDL2.bl_idname, text="Cobra Model (.MDL2)", icon_value=preview_collection["frontier.png"].icon_id)
 	self.layout.operator(ImportBani.bl_idname, text="Cobra Baked Anim (.bani)", icon_value=preview_collection["frontier.png"].icon_id)
 
