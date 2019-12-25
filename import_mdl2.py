@@ -261,7 +261,7 @@ def load(operator, context, filepath = "", use_custom_normals = False, mirror_me
 			mod.merge_threshold = 0.001
 		bpy.ops.mesh.tris_convert_to_quads()
 		if not use_custom_normals:
-			bpy.ops.mesh.remove_doubles(threshold = 0.0001, use_unselected = False)
+			bpy.ops.mesh.remove_doubles(threshold = 0.000001, use_unselected = False)
 		try:
 			bpy.ops.uv.seams_from_islands()
 		except:
