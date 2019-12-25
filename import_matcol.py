@@ -71,7 +71,8 @@ def create_material(matcol_path):
 			matrix_4x4 = mathutils.Matrix()
 			uvscale = list(i for i in infos[7].info.value)[:3]
 			transform.scale = uvscale
-			transform.rotation = matrix_4x4.to_euler()
+			rot = infos[5].info.value[0]
+			transform.rotation[2] = rot
 			transform.translation = matrix_4x4.to_translation()
 			transform.name = "TextureTransform"+str(i)
 			tree.links.new(uv.outputs[0], transform.inputs[0])
@@ -130,6 +131,9 @@ def load_matcol(matcol_path):
 		# print(layer)
 	for layer in materialcollection_data.header.layered_wrapper.layers:
 		print(layer.name)
+		if layer.name == "Default":
+			print("Skipping Default layer")
+			continue
 		fgm_path = os.path.join(lib_dir, layer.name+".fgm")
 		# print(fgm_path)
 		fgm_data = get_data(fgm_path, FgmFormat.Data)
