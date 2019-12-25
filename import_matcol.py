@@ -12,19 +12,24 @@ def load(operator, context, filepath = ""):
 	create_material(filepath)
 	return []
 
-def load_tex(tree, name):
-	tex = tree.nodes.new('ShaderNodeTexImage')
+def load_tex(tree, tex_path):
 	#todo: only load if img can't be found in existing images
-	try:
-		img = bpy.data.images.load(name)
-	except:
-		print("Could not find image "+name+", generating blank image!")
-		img = bpy.data.images.new(name,1,1)
+	name = os.path.basename(tex_path)
+	if name not in bpy.data.images:
+		try:
+			img = bpy.data.images.load(tex_path)
+		except:
+			print("Could not find image "+tex_path+", generating blank image!")
+			img = bpy.data.images.new(tex_path,1,1)
+	else:
+		img = bpy.data.images[name]
+	tex = tree.nodes.new('ShaderNodeTexImage')
 	# tex.name = "Texture"+str(i)
 	tex.image = img
 	# #eg. African violets, but only in rendered view; but: glacier
 	# tex.extension = "CLIP" if (cull_mode == "2" and not (material.AlphaTestEnable is False and material.AlphaBlendEnable is False) ) else "REPEAT"
 	tex.interpolation = "Smart"
+
 	return tex
 
 def create_material(matcol_path):
@@ -53,11 +58,20 @@ def create_material(matcol_path):
 			tex = load_tex(tree, texture)
 			textures.append(tex)
 
-			heightscale = infos[3].info.value[0]#*2
+			# height offset attribute
+			heightoffset = infos[1].info.value[0]
+			offset = tree.nodes.new('ShaderNodeMath')
+			offset.operation = "ADD"
+			offset.inputs[1].default_value = heightoffset
+			tree.links.new(tex.outputs[0], offset.inputs[0])
+
+			# height scale attribute
+			heightscale = infos[3].info.value[0]
 			scale = tree.nodes.new('ShaderNodeMath')
 			scale.operation = "MULTIPLY"
-			tree.links.new(tex.outputs[0], scale.inputs[0])
-			scale.inputs[1].default_value = heightscale
+			scale.inputs[1].default_value = heightscale * 100
+			tree.links.new(offset.outputs[0], scale.inputs[0])
+			
 
 			mask_path = os.path.join(matdir, matname+".playered_blendweights_{:02}.png".format(i))
 			mask = load_tex(tree, mask_path)
@@ -71,8 +85,11 @@ def create_material(matcol_path):
 			matrix_4x4 = mathutils.Matrix()
 			uvscale = list(i for i in infos[7].info.value)[:3]
 			transform.scale = uvscale
+
+			# in radians for both blender & game matcol
 			rot = infos[5].info.value[0]
-			transform.rotation[2] = rot
+			# flip since blender flips V coord
+			transform.rotation[2] = -rot
 			transform.translation = matrix_4x4.to_translation()
 			transform.name = "TextureTransform"+str(i)
 			tree.links.new(uv.outputs[0], transform.inputs[0])
@@ -101,7 +118,6 @@ def create_material(matcol_path):
 		tree.links.new(mixRGB.outputs[0],		bump.inputs[2])
 		tree.links.new(normal_map.outputs[0],		bump.inputs[3])
 		tree.links.new(bump.outputs[0],			shader_diffuse.inputs[2])
-		# tree.links.new(shader_diffuse.outputs[0],	alpha_mixer.inputs[2])
 		tree.links.new(shader_diffuse.outputs[0],		output.inputs[0])
 			
 		nodes_iterate(tree, output)
