@@ -5,7 +5,7 @@ from bpy_extras.io_utils import axis_conversion
 def nif_bind_to_blender_bind(nif_armature_space_matrix):
 	# post multiplication: local space
 	# return correction_inv * correction * nif_armature_space_matrix * correction_inv
-	return correction_glob * nif_armature_space_matrix * correction_inv
+	return correction_glob @ nif_armature_space_matrix @ correction_inv
 	# return nif_armature_space_matrix * correction_inv
 	
 def set_bone_orientation(from_forward, from_up):
@@ -73,7 +73,7 @@ def vec_roll_to_mat3(vec, roll):
     rMatrix = mathutils.Matrix.Rotation(roll, 3, nor)
     
     #Combine and output result
-    mat = rMatrix * bMatrix
+    mat = rMatrix @ bMatrix
     return mat
 
 def mat3_to_vec_roll(mat):
@@ -81,7 +81,7 @@ def mat3_to_vec_roll(mat):
     vec = mat.col[1]
     vecmat = vec_roll_to_mat3(mat.col[1], 0)
     vecmatinv = vecmat.inverted()
-    rollmat = vecmatinv * mat
+    rollmat = vecmatinv @ mat
     roll = math.atan2(rollmat[0][2], rollmat[2][2])
     return vec, roll
 

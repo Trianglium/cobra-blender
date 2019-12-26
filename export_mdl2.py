@@ -58,7 +58,7 @@ def save(operator, context, filepath = ''):
 		# clear pose
 		for pbone in b_armature_ob.pose.bones:
 			pbone.matrix_basis = mathutils.Matrix()
-		bpy.context.scene.update()
+		# bpy.context.scene.update()
 		bone_names = data.bone_names
 		# used to get index from bone name for faster weights
 		bones_table = dict( (bone_name_for_blender(bone_name), bone_i) for bone_i, bone_name in enumerate(bone_names) )
@@ -68,6 +68,7 @@ def save(operator, context, filepath = ''):
 			model.tri_indices = []
 			model.verts = []
 
+		depsgraph = context.evaluated_depsgraph_get()
 		for ob in bpy.data.objects:
 			if type(ob.data) == bpy.types.Mesh:
 				print("\nNext mesh...")
@@ -76,7 +77,8 @@ def save(operator, context, filepath = ''):
 				ensure_tri_modifier(ob)
 				
 				#make a copy with all modifiers applied - I think there was another way to do it too
-				me = ob.to_mesh(bpy.context.scene, True, "PREVIEW", calc_tessface=False)
+				object_eval = ob.evaluated_get(depsgraph)
+				me = bpy.data.meshes.new_from_object(object_eval)
 				
 				#get the index of this model in the mdl2 model buffer
 				try:

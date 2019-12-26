@@ -41,86 +41,92 @@ def create_material(matcol_path):
 	#only create the material if we haven't already created it, then just grab it
 	if matname not in bpy.data.materials:
 		mat = bpy.data.materials.new(matname)
-		mat.use_nodes = True
+	#only create the material if we haven't already created it, then just grab it
+	else:
+		mat = bpy.data.materials[matname]
+	mat.use_nodes = True
+	
+	tree = mat.node_tree
+	# clear default nodes
+	for node in tree.nodes:
+		tree.nodes.remove(node)
+	output = tree.nodes.new('ShaderNodeOutputMaterial')
+	# principled = tree.nodes.new('ShaderNodeBsdfPrincipled')
+	shader_diffuse = tree.nodes.new('ShaderNodeBsdfDiffuse')
+	
+	last_mixer = None
+	textures = []
+	for i, (infos, texture) in enumerate( slots):
+		print("Slot",i)
+		tex = load_tex(tree, texture)
+		textures.append(tex)
+
+		# height offset attribute
+		heightoffset = infos[1].info.value[0]
+		offset = tree.nodes.new('ShaderNodeMath')
+		offset.operation = "ADD"
+		offset.inputs[1].default_value = heightoffset
+		tree.links.new(tex.outputs[0], offset.inputs[0])
+
+		# height scale attribute
+		heightscale = infos[3].info.value[0]
+		scale = tree.nodes.new('ShaderNodeMath')
+		scale.operation = "MULTIPLY"
+		scale.inputs[1].default_value = heightscale * 100
+		tree.links.new(offset.outputs[0], scale.inputs[0])
 		
-		tree = mat.node_tree
-		# clear default nodes
-		for node in tree.nodes:
-			tree.nodes.remove(node)
-		output = tree.nodes.new('ShaderNodeOutputMaterial')
-		# principled = tree.nodes.new('ShaderNodeBsdfPrincipled')
-		shader_diffuse = tree.nodes.new('ShaderNodeBsdfDiffuse')
+
+		mask_path = os.path.join(matdir, matname+".playered_blendweights_{:02}.png".format(i))
+		mask = load_tex(tree, mask_path)
+
+		uv = tree.nodes.new('ShaderNodeUVMap')
+		uv.name = "TexCoordIndex"+str(i)
+		uv.uv_map = "UV0"
 		
-		last_mixer = None
-		textures = []
-		for i, (infos, texture) in enumerate( slots):
-			print("Slot",i)
-			tex = load_tex(tree, texture)
-			textures.append(tex)
+		transform = tree.nodes.new('ShaderNodeMapping')
+		#todo: negate V coordinate
+		matrix_4x4 = mathutils.Matrix()
+		uvscale = list(i for i in infos[7].info.value)[:3]
+		transform.inputs[3].default_value = uvscale
 
-			# height offset attribute
-			heightoffset = infos[1].info.value[0]
-			offset = tree.nodes.new('ShaderNodeMath')
-			offset.operation = "ADD"
-			offset.inputs[1].default_value = heightoffset
-			tree.links.new(tex.outputs[0], offset.inputs[0])
+		# in radians for both blender & game matcol
+		rot = infos[5].info.value[0]
+		# flip since blender flips V coord
+		transform.inputs[2].default_value[2] = -rot
+		# transform.translation = matrix_4x4.to_translation()
+		transform.name = "TextureTransform"+str(i)
+		tree.links.new(uv.outputs[0], transform.inputs[0])
+		tree.links.new(transform.outputs[0], tex.inputs[0])
+		
+		tex.update()
+		mask.update()
 
-			# height scale attribute
-			heightscale = infos[3].info.value[0]
-			scale = tree.nodes.new('ShaderNodeMath')
-			scale.operation = "MULTIPLY"
-			scale.inputs[1].default_value = heightscale * 100
-			tree.links.new(offset.outputs[0], scale.inputs[0])
-			
+		mixRGB = tree.nodes.new('ShaderNodeMixRGB')
+		mixRGB.blend_type = "ADD"
+		tree.links.new(mask.outputs[0], mixRGB.inputs[0])
+		if last_mixer:
+			tree.links.new(last_mixer.outputs[0], mixRGB.inputs[1])
+		else:
+			mixRGB.inputs[1].default_value = (0,0,0,1)
+		tree.links.new(scale.outputs[0], mixRGB.inputs[2])
+		last_mixer = mixRGB
 
-			mask_path = os.path.join(matdir, matname+".playered_blendweights_{:02}.png".format(i))
-			mask = load_tex(tree, mask_path)
+	normal_path = os.path.join(matdir, matname+".pnormaltexture.png".format(i))
+	normal = load_tex(tree, normal_path)
+	normal.image.colorspace_settings.name = "Non-Color"
+	normal_map = tree.nodes.new('ShaderNodeNormalMap')
+	tree.links.new(normal.outputs[0],		normal_map.inputs[1])
 
-			uv = tree.nodes.new('ShaderNodeUVMap')
-			uv.name = "TexCoordIndex"+str(i)
-			uv.uv_map = "UV0"
-			
-			transform = tree.nodes.new('ShaderNodeMapping')
-			#todo: negate V coordinate
-			matrix_4x4 = mathutils.Matrix()
-			uvscale = list(i for i in infos[7].info.value)[:3]
-			transform.scale = uvscale
+	bump = tree.nodes.new('ShaderNodeBump')
+	
+	# does not create link in 2.81 ???
+	tree.links.new(normal_map.outputs[0], bump.inputs[3])
 
-			# in radians for both blender & game matcol
-			rot = infos[5].info.value[0]
-			# flip since blender flips V coord
-			transform.rotation[2] = -rot
-			transform.translation = matrix_4x4.to_translation()
-			transform.name = "TextureTransform"+str(i)
-			tree.links.new(uv.outputs[0], transform.inputs[0])
-			tree.links.new(transform.outputs[0], tex.inputs[0])
-			
-			tex.update()
-			mask.update()
-
-			mixRGB = tree.nodes.new('ShaderNodeMixRGB')
-			mixRGB.blend_type = "ADD"
-			tree.links.new(mask.outputs[0], mixRGB.inputs[0])
-			if last_mixer:
-				tree.links.new(last_mixer.outputs[0], mixRGB.inputs[1])
-			else:
-				mixRGB.inputs[1].default_value = (0,0,0,1)
-			tree.links.new(scale.outputs[0], mixRGB.inputs[2])
-			last_mixer = mixRGB
-
-		normal_path = os.path.join(matdir, matname+".pnormaltexture.png".format(i))
-		normal = load_tex(tree, normal_path)
-		normal.color_space = "NONE"
-		normal_map = tree.nodes.new('ShaderNodeNormalMap')
-		tree.links.new(normal.outputs[0],		normal_map.inputs[1])
-
-		bump = tree.nodes.new('ShaderNodeBump')
-		tree.links.new(mixRGB.outputs[0],		bump.inputs[2])
-		tree.links.new(normal_map.outputs[0],		bump.inputs[3])
-		tree.links.new(bump.outputs[0],			shader_diffuse.inputs[2])
-		tree.links.new(shader_diffuse.outputs[0],		output.inputs[0])
-			
-		nodes_iterate(tree, output)
+	tree.links.new(mixRGB.outputs[0], bump.inputs[2])
+	tree.links.new(bump.outputs[0],			shader_diffuse.inputs[2])
+	tree.links.new(shader_diffuse.outputs[0],		output.inputs[0])
+		
+	nodes_iterate(tree, output)
 	return mat
 	# #now finally set all the textures we have in the mesh
 	# me = ob.data

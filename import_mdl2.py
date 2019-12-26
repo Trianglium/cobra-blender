@@ -46,13 +46,13 @@ def import_armature(data):
 	if bone_info:
 		armature_name = "Test"
 		b_armature_data = bpy.data.armatures.new(armature_name)
-		b_armature_data.draw_type = 'STICK'
+		b_armature_data.display_type = 'STICK'
 		# set axis orientation for export
 		# b_armature_data.niftools.axis_forward = NifOp.props.axis_forward
 		# b_armature_data.niftools.axis_up = NifOp.props.axis_up
 		b_armature_obj = create_ob(armature_name, b_armature_data)
-		b_armature_obj.show_x_ray = True
-		b_armature_obj.layers = select_layer(10)
+		# b_armature_obj.show_x_ray = True
+		# LOD(b_armature_obj, 10)
 		bone_names = [bone_name_for_blender(n) for n in data.bone_names]
 		# make armature editable and create bones
 		bpy.ops.object.mode_set(mode='EDIT', toggle=False)
@@ -149,13 +149,13 @@ def create_material(ob, matname):
 			# except:
 				# print("No matching UV layer for Texture!")
 	#and for rendering, make sure each poly is assigned to the material
-	for f in me.polygons:
-		f.material_index = 0
+	# for f in me.polygons:
+	# 	f.material_index = 0
 	
 def create_ob(ob_name, ob_data):
 	ob = bpy.data.objects.new(ob_name, ob_data)
-	bpy.context.scene.objects.link(ob)
-	bpy.context.scene.objects.active = ob
+	bpy.context.scene.collection.objects.link(ob)
+	bpy.context.view_layer.objects.active = ob
 	return ob
 
 def mesh_from_data(name, verts, faces, wireframe = True):
@@ -163,19 +163,24 @@ def mesh_from_data(name, verts, faces, wireframe = True):
 	me.from_pydata(verts, [], faces)
 	me.update()
 	ob = create_ob(name, me)
-	if wireframe:
-		ob.draw_type = 'WIRE'
+	# if wireframe:
+	# 	ob.draw_type = 'WIRE'
 	return ob, me
 	
-def select_layer(layer_nr): return tuple(i == layer_nr for i in range(0, 20))
-	
+def LOD(ob, level):
+	lod = "LOD"+str(level)
+	if lod not in bpy.data.collections:
+		coll = bpy.data.collections.new(lod)
+		bpy.context.scene.collection.children.link(coll)
+	else:
+		coll = bpy.data.collections[lod]
+	# Link active object to the new collection
+	coll.objects.link(ob)
+
 def load(operator, context, filepath = "", use_custom_normals = False, mirror_mesh = False):
 	mdl2_name = os.path.basename(filepath)
 	data = load_mdl2(filepath)
 	
-	# else operators choke on objects in hidden layers
-	bpy.context.scene.layers = [True] * 20
-
 	errors = []
 	# try:
 	b_armature_obj = import_armature(data)
@@ -193,14 +198,14 @@ def load(operator, context, filepath = "", use_custom_normals = False, mirror_me
 		ob["add_shells"] = 0
 		ob["flag"] = model.flag
 		
-		ob.layers = select_layer(lod_i)
+		LOD(ob, lod_i)
 		create_material(ob, model.material)
 		
 		# set uv data
 		# todo: get UV count
 		for uv_i in range(0, 4):
 			uvs = model.uv_layers[uv_i]
-			me.uv_textures.new("UV"+str(uv_i))
+			me.uv_layers.new( name = "UV"+str(uv_i) )
 			me.uv_layers[-1].data.foreach_set("uv", [uv for pair in [uvs[l.vertex_index] for l in me.loops] for uv in (pair[0], 1-pair[1])])
 		
 		# # todo: get vcol count, if it is vcol
@@ -221,7 +226,7 @@ def load(operator, context, filepath = "", use_custom_normals = False, mirror_me
 		for i, vert	in enumerate(model.weights):
 			for bonename, weight in vert:
 				bonename = bone_name_for_blender(bonename)
-				if bonename not in ob.vertex_groups: ob.vertex_groups.new(bonename)
+				if bonename not in ob.vertex_groups: ob.vertex_groups.new( name = bonename )
 				ob.vertex_groups[bonename].add([i], weight, 'REPLACE')
 		
 		

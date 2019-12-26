@@ -106,7 +106,7 @@ def load(operator, context, files = [], filepath = "", set_fps=False):
 			# trans = (mathutils.Vector(loc)) + armature_space_matrix.translation
 			# the eulers are applied globally to the bone, equivalent to the user doing R+X, R+Y, R+Z for each axis.
 			# rot_mat is the final armature space matrix of the posed bone
-			rot_mat = global_corr_mat * euler.to_matrix().to_4x4() * armature_space_matrix
+			rot_mat = global_corr_mat @ euler.to_matrix().to_4x4() @ armature_space_matrix
 			# rot_mat = mathutils.Matrix(armature_space_matrix)
 			rot_mat.translation = trans
 			# print(rot_mat)
