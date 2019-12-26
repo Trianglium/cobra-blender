@@ -106,6 +106,9 @@ def save(operator, context, filepath = ''):
 				# loop faces
 				for face in me.polygons:
 					tri = []
+					if len(face.loop_indices) != 3:
+						errors.append( f"Model {ob.name} is not triangulated!" )
+						return errors
 					# loop over face loop
 					for loop_index in face.loop_indices:
 						b_loop = me.loops[loop_index]
