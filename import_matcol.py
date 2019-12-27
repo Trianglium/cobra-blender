@@ -66,7 +66,7 @@ def create_flip():
 	
 	flip = test_group.nodes.new('ShaderNodeMath')
 	flip.operation = 'MULTIPLY'
-	test_group.links.new(split.outputs[1], flip.inputs[0])
+	test_group.links.new(split.outputs[0], flip.inputs[0])
 	flip.inputs[1].default_value = -1.0
 	
 	join = test_group.nodes.new('ShaderNodeCombineXYZ')
@@ -209,12 +209,15 @@ def create_material(matcol_path):
 	last_mixer = None
 	textures = []
 	for i, (infos, texture) in enumerate( slots):
+		# skip default materials that have no fgm assigned
+		if not texture:
+			continue
 		print("Slot",i)
 		tex = load_tex(tree, texture)
 		textures.append(tex)
 
 		# height offset attribute
-		heightoffset = infos[1].info.value[0]
+		heightoffset = infos[2].info.value[0]
 		offset = tree.nodes.new('ShaderNodeMath')
 		offset.operation = "ADD"
 		offset.inputs[1].default_value = heightoffset
@@ -259,7 +262,7 @@ def create_material(matcol_path):
 		mask.update()
 
 		mixRGB = tree.nodes.new('ShaderNodeMixRGB')
-		mixRGB.blend_type = "ADD"
+		mixRGB.blend_type = "MIX"
 		tree.links.new(mask.outputs[0], mixRGB.inputs[0])
 		if last_mixer:
 			tree.links.new(last_mixer.outputs[0], mixRGB.inputs[1])
@@ -310,19 +313,21 @@ def load_matcol(matcol_path):
 		# print(layer)
 	for layer in materialcollection_data.header.layered_wrapper.layers:
 		print(layer.name)
-		if layer.name == "Default":
+		if layer.name != "Default":
 			print("Skipping Default layer")
-			continue
-		fgm_path = os.path.join(lib_dir, layer.name+".fgm")
-		# print(fgm_path)
-		fgm_data = get_data(fgm_path, FgmFormat.Data)
-		base_index = fgm_data.fgm_header.textures[0].layers[1]
-		height_index = fgm_data.fgm_header.textures[1].layers[1]
-		print("base_array_index",base_index)
-		print("height_array_index",height_index)
-		print("base",base_textures[base_index])
-		print("height",height_textures[height_index])
-		slots.append( (layer.infos, height_textures[height_index]) )
+			htex = None
+		else:
+			fgm_path = os.path.join(lib_dir, layer.name+".fgm")
+			# print(fgm_path)
+			fgm_data = get_data(fgm_path, FgmFormat.Data)
+			base_index = fgm_data.fgm_header.textures[0].layers[1]
+			height_index = fgm_data.fgm_header.textures[1].layers[1]
+			print("base_array_index",base_index)
+			print("height_array_index",height_index)
+			print("base",base_textures[base_index])
+			print("height",height_textures[height_index])
+			htex = height_textures[height_index]
+		slots.append( (layer.infos, htex) )
 	return slots
 	
 if __name__ == '__main__':
