@@ -313,7 +313,7 @@ def load_matcol(matcol_path):
 		# print(layer)
 	for layer in materialcollection_data.header.layered_wrapper.layers:
 		print(layer.name)
-		if layer.name != "Default":
+		if layer.name == "Default":
 			print("Skipping Default layer")
 			htex = None
 		else:
