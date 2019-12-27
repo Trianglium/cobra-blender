@@ -203,18 +203,22 @@ def create_material(matcol_path):
 	for node in tree.nodes:
 		tree.nodes.remove(node)
 	output = tree.nodes.new('ShaderNodeOutputMaterial')
-	# principled = tree.nodes.new('ShaderNodeBsdfPrincipled')
-	shader_diffuse = tree.nodes.new('ShaderNodeBsdfDiffuse')
+	principled = tree.nodes.new('ShaderNodeBsdfPrincipled')
 	
 	last_mixer = None
 	textures = []
 	for i, (infos, texture) in enumerate( slots):
 		# skip default materials that have no fgm assigned
 		if not texture:
+			textures.append( None )
 			continue
 		print("Slot",i)
+
+		# load the tiled texture
 		tex = load_tex(tree, texture)
-		textures.append(tex)
+		# load the blendweights layer mask
+		mask_path = os.path.join(matdir, matname+".playered_blendweights_{:02}.png".format(i))
+		mask = load_tex(tree, mask_path)
 
 		# height offset attribute
 		heightoffset = infos[2].info.value[0]
@@ -230,10 +234,7 @@ def create_material(matcol_path):
 		scale.inputs[1].default_value = heightscale * 100
 		tree.links.new(offset.outputs[0], scale.inputs[0])
 		
-
-		mask_path = os.path.join(matdir, matname+".playered_blendweights_{:02}.png".format(i))
-		mask = load_tex(tree, mask_path)
-
+		textures.append( (tex, mask, scale) )
 
 		transform = tree.nodes.new("ShaderNodeGroup")
 		transform.node_tree = group
@@ -261,30 +262,61 @@ def create_material(matcol_path):
 		tex.update()
 		mask.update()
 
-		mixRGB = tree.nodes.new('ShaderNodeMixRGB')
-		mixRGB.blend_type = "MIX"
-		tree.links.new(mask.outputs[0], mixRGB.inputs[0])
-		if last_mixer:
-			tree.links.new(last_mixer.outputs[0], mixRGB.inputs[1])
-		else:
-			mixRGB.inputs[1].default_value = (0,0,0,1)
-		tree.links.new(scale.outputs[0], mixRGB.inputs[2])
-		last_mixer = mixRGB
+	indices = []
+	for i_a in range(4):
+		for i_b in range(4):
+			indices.append(i_a + i_b*4)
+	print(indices)
 
-	normal_path = os.path.join(matdir, matname+".pnormaltexture.png".format(i))
+	for i in indices:
+		# skip empty slots
+		if textures[i]:
+			tex, mask, scale = textures[i]
+			mixRGB = tree.nodes.new('ShaderNodeMixRGB')
+			mixRGB.blend_type = "MIX"
+			tree.links.new(mask.outputs[0], mixRGB.inputs[0])
+			if last_mixer:
+				tree.links.new(last_mixer.outputs[0], mixRGB.inputs[1])
+			else:
+				mixRGB.inputs[1].default_value = (0,0,0,1)
+			tree.links.new(scale.outputs[0], mixRGB.inputs[2])
+			last_mixer = mixRGB
+
+	normal_path = os.path.join(matdir, matname+".pnormaltexture.png")
 	normal = load_tex(tree, normal_path)
 	normal.image.colorspace_settings.name = "Non-Color"
 	normal_map = tree.nodes.new('ShaderNodeNormalMap')
 	tree.links.new(normal.outputs[0],		normal_map.inputs[1])
 
 	bump = tree.nodes.new('ShaderNodeBump')
+	bump.inputs["Strength"].default_value = 0.5
+	bump.inputs["Distance"].default_value = 0.1
 	
 	# does not create link in 2.81 ???
-	tree.links.new(normal_map.outputs[0], bump.inputs[3])
+	tree.links.new(normal_map.outputs[0], bump.inputs["Normal"])
 
 	tree.links.new(mixRGB.outputs[0], bump.inputs[2])
-	tree.links.new(bump.outputs[0],			shader_diffuse.inputs[2])
-	tree.links.new(shader_diffuse.outputs[0],		output.inputs[0])
+
+	diffuse_path = os.path.join(matdir, matname+".pbasediffusetexture.png")
+	diffuse = load_tex(tree, diffuse_path)
+
+	roughness_path = os.path.join(matdir, matname+".pbasepackedtexture_01.png")
+	roughness = load_tex(tree, roughness_path)
+
+	ao_path = os.path.join(matdir, matname+".pbasepackedtexture_03.png")
+	ao = load_tex(tree, ao_path)
+
+	# apply AO to diffuse
+	diffuse_premix = tree.nodes.new('ShaderNodeMixRGB')
+	diffuse_premix.blend_type = "MULTIPLY"
+	diffuse_premix.inputs["Fac"].default_value = 1.0
+	tree.links.new(diffuse.outputs[0], diffuse_premix.inputs["Color1"])
+	tree.links.new(ao.outputs[0], diffuse_premix.inputs["Color2"])
+	
+	tree.links.new(diffuse_premix.outputs[0], principled.inputs["Base Color"])
+	tree.links.new(roughness.outputs[0], principled.inputs["Roughness"])
+	tree.links.new(bump.outputs[0], principled.inputs["Normal"])
+	tree.links.new(principled.outputs[0], output.inputs[0])
 		
 	nodes_iterate(tree, output)
 	return mat
