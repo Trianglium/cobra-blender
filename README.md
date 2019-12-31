@@ -9,7 +9,7 @@ A toolset for blender allowing the import and export of models, textures and ani
 - Get the latest release [here](https://github.com/OpenNaja/cobra-blender/releases).
 - To install with the addon installer in Blender, click `File` > `User Preferences` > `Add-ons` > `Install Add-ons from File` and select the ZIP you just downloaded.
 - pyffi 2.2.4.dev3 must be installed to blender's bundled python directory. Open a cmd with admin rights and do the following steps:
-```console
+```cmd
 C:\Windows\system32>cd C:\Program Files\Blender Foundation\Blender 2.81\2.81\python\bin
 
 C:\Program Files\Blender Foundation\Blender 2.81\2.81\python\bin>python.exe -m pip install PyFFI==2.2.4.dev3
