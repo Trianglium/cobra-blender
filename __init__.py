@@ -33,12 +33,12 @@ class ImportBani(bpy.types.Operator, ImportHelper):
 
 
 class ImportMatcol(bpy.types.Operator, ImportHelper):
-	"""Import from Matcol file format (.MATERIALCOLLECTION)"""
+	"""Import from Matcol file format (.matcol)"""
 	bl_idname = "import_scene.cobra_matcol"
-	bl_label = 'Import MATERIALCOLLECTION'
+	bl_label = 'Import Matcol'
 	bl_options = {'UNDO'}
-	filename_ext = ".materialcollection"
-	# filter_glob: StringProperty(default="*.materialcollection", options={'HIDDEN'})
+	filename_ext = ".matcol"
+	filter_glob: StringProperty(default="*.matcol", options={'HIDDEN'})
 
 	def execute(self, context):
 		from . import import_matcol
@@ -145,12 +145,12 @@ class MESH_PT_CobraTools(bpy.types.Panel):
 
 
 def menu_func_export(self, context):
-	self.layout.operator(ExportMDL2.bl_idname, text="Cobra Model (.MDL2)", icon_value=preview_collection["frontier.png"].icon_id)
+	self.layout.operator(ExportMDL2.bl_idname, text="Cobra Model (.mdl2)", icon_value=preview_collection["frontier.png"].icon_id)
 
 
 def menu_func_import(self, context):
-	self.layout.operator(ImportMatcol.bl_idname, text="Cobra Material (.MATERIALCOLLECTION)", icon_value=preview_collection["frontier.png"].icon_id)
-	self.layout.operator(ImportMDL2.bl_idname, text="Cobra Model (.MDL2)", icon_value=preview_collection["frontier.png"].icon_id)
+	self.layout.operator(ImportMatcol.bl_idname, text="Cobra Material (.matcol)", icon_value=preview_collection["frontier.png"].icon_id)
+	self.layout.operator(ImportMDL2.bl_idname, text="Cobra Model (.mdl2)", icon_value=preview_collection["frontier.png"].icon_id)
 	self.layout.operator(ImportBani.bl_idname, text="Cobra Baked Anim (.bani)", icon_value=preview_collection["frontier.png"].icon_id)
 
 
