@@ -5,15 +5,17 @@ import mathutils
 import math
 import bmesh
 
+
 def copy_ob(src_obj):
 	new_obj = src_obj.copy()
 	new_obj.data = src_obj.data.copy()
 	new_obj.name = src_obj.name+"_copy"
 	new_obj.animation_data_clear()
-	bpy.context.scene.objects.link(new_obj)
-	bpy.context.scene.objects.active = new_obj
+	bpy.context.scene.collection.objects.link(new_obj)
+	bpy.context.view_layer.objects.active = new_obj
 	return new_obj
-	
+
+
 def strip_shells_wrapper(shell_count=6):
 	for ob in bpy.context.selected_objects:
 		if ob.type == "MESH":
@@ -24,6 +26,7 @@ def create_fins_wrapper():
 	for ob in bpy.context.selected_objects:
 		if ob.type == "MESH":
 			build_fins(ob)
+
 
 def strip_shells(ob, shell_count=6):
 	
@@ -44,7 +47,8 @@ def strip_shells(ob, shell_count=6):
 	
 	success = '\nFinished Shell generation'
 	print(success)
-	
+
+
 def build_fins(src_ob):
 	
 	ob = copy_ob(src_ob)
@@ -78,7 +82,7 @@ def build_fins(src_ob):
 	# now delete all old faces, but only faces
 	# We have to pass these as ints
 	# DEL_VERTS = 1 DEL_EDGES = 2 DEL_ONLYFACES = 3 DEL_EDGESFACES = 4 DEL_FACES = 5 DEL_ALL = 6 DEL_ONLYTAGGED = 7
-	bmesh.ops.delete(bm, geom=faces, context=3)
+	bmesh.ops.delete(bm, geom=faces, context="FACES_ONLY")
 	
 	# build uv1 coords
 	build_uv(ob, bm)

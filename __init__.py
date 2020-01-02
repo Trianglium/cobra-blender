@@ -14,7 +14,8 @@ from bpy_extras.io_utils import ImportHelper, ExportHelper
 from bpy_extras.object_utils import AddObjectHelper, object_data_add
 import bpy.utils.previews
 preview_collection = bpy.utils.previews.new()
-		
+
+
 class ImportBani(bpy.types.Operator, ImportHelper):
 	"""Import from Cobra baked animations file format (.bani)"""
 	bl_idname = "import_scene.cobra_bani"
@@ -24,10 +25,12 @@ class ImportBani(bpy.types.Operator, ImportHelper):
 	filter_glob: StringProperty(default="*.bani", options={'HIDDEN'})
 	files: CollectionProperty(type=bpy.types.PropertyGroup)
 	# set_fps = BoolProperty(name="Adjust FPS", description="Set the scene to 30 frames per second to conform with the BFs.", default=True)
+
 	def execute(self, context):
 		from . import import_bani
 		keywords = self.as_keywords(ignore=("axis_forward", "axis_up", "filter_glob"))
 		return import_bani.load(self, context, **keywords)
+
 
 class ImportMatcol(bpy.types.Operator, ImportHelper):
 	"""Import from Matcol file format (.MATERIALCOLLECTION)"""
@@ -44,6 +47,7 @@ class ImportMatcol(bpy.types.Operator, ImportHelper):
 		for error in errors:
 			self.report({"ERROR"}, error)
 		return {'FINISHED'}
+
 
 class ImportMDL2(bpy.types.Operator, ImportHelper):
 	"""Import from MDL2 file format (.MDL2)"""
@@ -63,6 +67,7 @@ class ImportMDL2(bpy.types.Operator, ImportHelper):
 			self.report({"ERROR"}, error)
 		return {'FINISHED'}
 
+
 class ExportMDL2(bpy.types.Operator, ExportHelper):
 	"""Export to MDL2 file format (.MDL2)"""
 	bl_idname = "export_scene.cobra_mdl2"
@@ -77,7 +82,8 @@ class ExportMDL2(bpy.types.Operator, ExportHelper):
 		for error in errors:
 			self.report({"ERROR"}, error)
 		return {'FINISHED'}
-		
+
+
 class StripShells(bpy.types.Operator):
 	"""Remove duplicate faces for a faster export and to avoid blender hiccups"""
 	bl_idname = "object.strip_shells"
@@ -98,6 +104,7 @@ class StripShells(bpy.types.Operator):
 			self.report({"ERROR"}, str(err))
 		return {'FINISHED'}
 
+
 class CreateFins(bpy.types.Operator):
 	"""Create fins from current base geometry"""
 	bl_idname = "object.create_fins"
@@ -112,18 +119,40 @@ class CreateFins(bpy.types.Operator):
 			self.report({"ERROR"}, str(err))
 		return {'FINISHED'}
 
-#Add to a menu
+
+class MESH_PT_CobraTools(bpy.types.Panel):
+	"""Creates a Panel in the scene context of the properties editor"""
+	bl_label = "Cobra Mesh Tools"
+	bl_space_type = 'PROPERTIES'
+	bl_region_type = 'WINDOW'
+	bl_context = "data"
+
+	@classmethod
+	def poll(cls, context):
+		if context.active_object.type == 'MESH':
+			return True
+		else:
+			return False
+
+	def draw(self, context):
+		layout = self.layout
+
+		row = layout.row(align=True)
+		row.operator("object.strip_shells", icon_value=preview_collection["frontier.png"].icon_id)
+
+		sub = row.row()
+		sub.operator("object.create_fins", icon_value=preview_collection["frontier.png"].icon_id)
+
+
 def menu_func_export(self, context):
 	self.layout.operator(ExportMDL2.bl_idname, text="Cobra Model (.MDL2)", icon_value=preview_collection["frontier.png"].icon_id)
+
 
 def menu_func_import(self, context):
 	self.layout.operator(ImportMatcol.bl_idname, text="Cobra Material (.MATERIALCOLLECTION)", icon_value=preview_collection["frontier.png"].icon_id)
 	self.layout.operator(ImportMDL2.bl_idname, text="Cobra Model (.MDL2)", icon_value=preview_collection["frontier.png"].icon_id)
 	self.layout.operator(ImportBani.bl_idname, text="Cobra Baked Anim (.bani)", icon_value=preview_collection["frontier.png"].icon_id)
 
-def menu_func_object(self, context):
-	self.layout.operator(StripShells.bl_idname, text="Strip Shells", icon_value=preview_collection["frontier.png"].icon_id)
-	self.layout.operator(CreateFins.bl_idname, text="Create Fins", icon_value=preview_collection["frontier.png"].icon_id)
 
 classes = (
 	ImportBani,
@@ -131,8 +160,10 @@ classes = (
 	ImportMDL2,
 	ExportMDL2,
 	StripShells,
-	CreateFins
+	CreateFins,
+	MESH_PT_CobraTools
 	)
+
 
 def register():
 	import os
@@ -147,7 +178,8 @@ def register():
 	bpy.types.TOPBAR_MT_file_import.append(menu_func_import)
 	bpy.types.TOPBAR_MT_file_export.append(menu_func_export)
 	# bpy.types.VIEW3D_PT_tools_object.append(menu_func_object)
-	
+
+
 def unregister():
 	bpy.utils.previews.remove(preview_collection)
 
@@ -157,6 +189,7 @@ def unregister():
 	
 	for cls in classes:
 		bpy.utils.unregister_class(cls)
+
 
 if __name__ == "__main__":
 	register()
