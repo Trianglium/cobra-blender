@@ -51,7 +51,7 @@ def import_armature(data):
 		# b_armature_data.niftools.axis_forward = NifOp.props.axis_forward
 		# b_armature_data.niftools.axis_up = NifOp.props.axis_up
 		b_armature_obj = create_ob(armature_name, b_armature_data)
-		# b_armature_obj.show_x_ray = True
+		b_armature_obj.show_in_front = True
 		# LOD(b_armature_obj, 10)
 		bone_names = [bone_name_for_blender(n) for n in data.bone_names]
 		# make armature editable and create bones

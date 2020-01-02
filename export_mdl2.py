@@ -10,38 +10,43 @@ from .pyffi_ext.formats.ms2 import Ms2Format
 
 MAX_USHORT = 65535
 
+
 def bone_name_for_blender(n):
 	if "def_r_" in n:
 		n = n.replace("def_r_", "def_")+".R"
 	if "def_l_" in n:
 		n = n.replace("def_l_", "def_")+".L"
 	return n
-	
+
+
 def bone_name_for_ovl(n):
 	if n.endswith(".R"):
 		n = n[:-2].replace("def_", "def_r_")
 	if n.endswith(".L"):
 		n = n[:-2].replace("def_", "def_l_")
 	return n
-	
+
+
 def get_armature():
 	src_armatures = [ob for ob in bpy.data.objects if type(ob.data) == bpy.types.Armature]
-	#do we have armatures?
+	# do we have armatures?
 	if src_armatures:
-		#see if one of these is selected
+		# see if one of these is selected
 		if len(src_armatures) > 1:
 			sel_armatures = [ob for ob in src_armatures if ob.select]
 			if sel_armatures:
 				return sel_armatures[0]
 		return src_armatures[0]
-		
+
+
 def ensure_tri_modifier(ob):
 	for mod in ob.modifiers:
 		if mod.type in ('TRIANGULATE',):
 			break
 	else:
 		ob.modifiers.new('Triangulate', 'TRIANGULATE')
-	
+
+
 def save(operator, context, filepath = ''):
 	errors = []
 	if not os.path.isfile(filepath):
@@ -52,8 +57,7 @@ def save(operator, context, filepath = ''):
 	with open(filepath, "rb") as stream:
 		data.inspect_quick(stream)
 		data.read(stream, data, file=filepath, quick=True)
-		
-			
+
 		b_armature_ob = get_armature()
 		# clear pose
 		for pbone in b_armature_ob.pose.bones:
@@ -68,19 +72,19 @@ def save(operator, context, filepath = ''):
 			model.tri_indices = []
 			model.verts = []
 
-		depsgraph = context.evaluated_depsgraph_get()
 		for ob in bpy.data.objects:
 			if type(ob.data) == bpy.types.Mesh:
 				print("\nNext mesh...")
 				
 				# make sure the model has a triangulation modifier
 				ensure_tri_modifier(ob)
-				
-				#make a copy with all modifiers applied - I think there was another way to do it too
-				object_eval = ob.evaluated_get(depsgraph)
-				me = bpy.data.meshes.new_from_object(object_eval)
-				
-				#get the index of this model in the mdl2 model buffer
+
+				# make a copy with all modifiers applied
+				dg = bpy.context.evaluated_depsgraph_get()
+				eval_obj = ob.evaluated_get(dg)
+				me = eval_obj.to_mesh(preserve_all_data_layers=True, depsgraph=dg)
+
+				# get the index of this model in the mdl2 model buffer
 				try:
 					ind = int(ob.name.rsplit("_model", 1)[1])
 				except:
@@ -132,8 +136,7 @@ def save(operator, context, filepath = ''):
 							v_index = count_unique
 							dummy_vertices[dummy] = v_index
 							count_unique += 1
-						
-							
+
 							# create ms2 vertex
 							ms2_vert = Ms2Format.PackedVert()
 							# set pack base
@@ -182,8 +185,7 @@ def save(operator, context, filepath = ''):
 								return errors
 						tri.append(v_index)
 					tris.append( tri )
-							
-						
+
 				print("count_unique",count_unique)
 				print("count_reused",count_reused)
 				
