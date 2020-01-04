@@ -8,30 +8,12 @@ import math
 from .pyffi_ext.formats.materialcollection import MaterialcollectionFormat
 from .pyffi_ext.formats.fgm import FgmFormat
 from .utils.node_arrange import nodes_iterate
+from .utils.node_util import load_tex, get_tree
+
 
 def load(operator, context, filepath = ""):
 	create_material(filepath)
 	return []
-
-def load_tex(tree, tex_path):
-	#todo: only load if img can't be found in existing images
-	name = os.path.basename(tex_path)
-	if name not in bpy.data.images:
-		try:
-			img = bpy.data.images.load(tex_path)
-		except:
-			print("Could not find image "+tex_path+", generating blank image!")
-			img = bpy.data.images.new(tex_path,1,1)
-	else:
-		img = bpy.data.images[name]
-	tex = tree.nodes.new('ShaderNodeTexImage')
-	# tex.name = "Texture"+str(i)
-	tex.image = img
-	# #eg. African violets, but only in rendered view; but: glacier
-	# tex.extension = "CLIP" if (cull_mode == "2" and not (material.AlphaTestEnable is False and material.AlphaBlendEnable is False) ) else "REPEAT"
-	tex.interpolation = "Smart"
-
-	return tex
 
 
 def create_height():
@@ -96,9 +78,10 @@ def create_height():
 	nodes_iterate(test_group, group_outputs)
 	return test_group
 
+
 def create_flip():
 	name = "FlipX"
-	#only create the material if we haven't already created it, then just grab it
+	# only create the material if we haven't already created it, then just grab it
 	if name not in bpy.data.node_groups:
 		# create a group
 		test_group = bpy.data.node_groups.new(name, 'ShaderNodeTree')
@@ -257,15 +240,9 @@ def create_material(matcol_path):
 	else:
 		mat = bpy.data.materials[matname]
 
-	
-	mat.use_nodes = True
-
+	tree = get_tree(mat)
 	height_group = create_height()
 	transform_group = create_group()
-	tree = mat.node_tree
-	# clear default nodes
-	for node in tree.nodes:
-		tree.nodes.remove(node)
 	output = tree.nodes.new('ShaderNodeOutputMaterial')
 	principled = tree.nodes.new('ShaderNodeBsdfPrincipled')
 	

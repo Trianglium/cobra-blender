@@ -7,7 +7,16 @@ import bpy
 import mathutils
 
 from .utils import matrix_util
+from .utils.node_arrange import nodes_iterate
+from .utils.node_util import load_tex, get_tree
 from .pyffi_ext.formats.ms2 import Ms2Format
+from .pyffi_ext.formats.fgm import FgmFormat
+
+def get_data(p, d):
+	dat = d()
+	with open(p, "rb") as stream:
+		dat.read(stream)
+	return dat
 
 def load_mdl2(file_path):
 	"""Loads a mdl2 from the given file path"""
@@ -124,33 +133,125 @@ def append_armature_modifier(b_obj, b_armature):
 		b_mod.use_bone_envelopes = False
 		b_mod.use_vertex_groups = True
 
-
-
-def create_material(ob, matname):
-	# todo: get fgm file
-	# material = bfmat(dirname, matname+".bfmat")
+def create_material(ob, in_dir, matname):
 	
 	print("MATERIAL:",matname)
-	#only create the material if we haven't already created it, then just grab it
+	# only create the material if we haven't already created it, then just grab it
 	if matname not in bpy.data.materials:
 		mat = bpy.data.materials.new(matname)
 	else:
 		mat = bpy.data.materials[matname]
-	#now finally set all the textures we have in the mesh
+	# now finally set all the textures we have in the mesh
 	me = ob.data
 	me.materials.append(mat)
-	# #reversed so the last is shown
-	# for mtex in reversed(mat.texture_slots):
-		# if mtex:
-			# try:
-				# uv_i = int(mtex.uv_layer)
-				# for texface in me.uv_textures[uv_i].data:
-					# texface.image = mtex.texture.image
-			# except:
-				# print("No matching UV layer for Texture!")
-	#and for rendering, make sure each poly is assigned to the material
-	# for f in me.polygons:
-	# 	f.material_index = 0
+
+	fgm_path = os.path.join(in_dir, matname + ".fgm")
+	# print(fgm_path)
+	try:
+		fgm_data = get_data(fgm_path, FgmFormat.Data)
+	except FileNotFoundError:
+		print(f"{fgm_path} does not exist!")
+		return
+	# base_index = fgm_data.fgm_header.textures[0].layers[1]
+	# height_index = fgm_data.fgm_header.textures[1].layers[1]
+	tree = get_tree(mat)
+	output = tree.nodes.new('ShaderNodeOutputMaterial')
+	principled = tree.nodes.new('ShaderNodeBsdfPrincipled')
+
+	all_textures = [file for file in os.listdir(in_dir) if file.lower().endswith(".png")]
+	# map texture names to node
+	tex_dic = {}
+	for fgm_texture in fgm_data.fgm_header.textures:
+		png_base = f"{matname}.{fgm_texture.name}".lower()
+		if "blendweights" in png_base or "warpoffset" in png_base:
+			continue
+		textures = [file for file in all_textures if file.lower().startswith(png_base)]
+		for png_name in textures:
+			png_path = os.path.join(in_dir, png_name)
+			b_tex = load_tex(tree, png_path)#
+			k = png_name.lower().split(".")[1]
+			tex_dic[k] = b_tex
+
+	# get diffuse and AO
+	for diffuse_name in ("pbasediffusetexture", "pbasecolourtexture"):
+		# get diffuse
+		if diffuse_name in tex_dic:
+			diffuse = tex_dic[diffuse_name]
+			# get AO
+			for ao_name in ("paotexture", "pbasepackedtexture_03"):
+				if ao_name in tex_dic:
+					ao = tex_dic[ao_name]
+					ao.image.colorspace_settings.name = "Non-Color"
+
+					# apply AO to diffuse
+					diffuse_premix = tree.nodes.new('ShaderNodeMixRGB')
+					diffuse_premix.blend_type = "MULTIPLY"
+					diffuse_premix.inputs["Fac"].default_value = .25
+					tree.links.new(diffuse.outputs[0], diffuse_premix.inputs["Color1"])
+					tree.links.new(ao.outputs[0], diffuse_premix.inputs["Color2"])
+					diffuse = diffuse_premix
+					break
+			#  link finished diffuse to shader
+			tree.links.new(diffuse.outputs[0], principled.inputs["Base Color"])
+			break
+
+	if "pnormaltexture" in tex_dic:
+		normal = tex_dic["pnormaltexture"]
+		normal.image.colorspace_settings.name = "Non-Color"
+		normal_map = tree.nodes.new('ShaderNodeNormalMap')
+		tree.links.new(normal.outputs[0], normal_map.inputs[1])
+		# normal_map.inputs["Strength"].default_value = 1.0
+		tree.links.new(normal_map.outputs[0], principled.inputs["Normal"])
+
+	# PZ - specularity?
+	for spec_name in ( "proughnesspackedtexture_01",):
+		if spec_name in tex_dic:
+			specular = tex_dic[spec_name]
+			specular.image.colorspace_settings.name = "Non-Color"
+			tree.links.new(specular.outputs[0], principled.inputs["Specular"])
+
+	# PZ - roughness?
+	for roughness_name in ( "proughnesspackedtexture_02",):
+		if roughness_name in tex_dic:
+			roughness = tex_dic[roughness_name]
+			roughness.image.colorspace_settings.name = "Non-Color"
+			tree.links.new(roughness.outputs[0], principled.inputs["Roughness"])
+
+	# JWE dinos - metalness
+	for metal_name in ("pbasepackedtexture_02",):
+		if metal_name in tex_dic:
+			metal = tex_dic[metal_name]
+			metal.image.colorspace_settings.name = "Non-Color"
+			tree.links.new(metal.outputs[0], principled.inputs["Metallic"])
+
+	# alpha
+	if "proughnesspackedtexture_03" in tex_dic:
+		# transparency
+		mat.blend_method = "CLIP"
+		mat.shadow_method = "CLIP"
+		for attrib in fgm_data.fgm_header.attributes:
+			if attrib.name.lower() == "palphatestref":
+				mat.alpha_threshold = attrib.value[0]
+				break
+		# if material.AlphaBlendEnable:
+		# 	mat.blend_method = "BLEND"
+		transp = tree.nodes.new('ShaderNodeBsdfTransparent')
+		alpha_mixer = tree.nodes.new('ShaderNodeMixShader')
+		alpha = tex_dic["proughnesspackedtexture_03"]
+		tree.links.new(alpha.outputs[0], alpha_mixer.inputs[0])
+
+		tree.links.new(transp.outputs[0], alpha_mixer.inputs[1])
+		tree.links.new(principled.outputs[0], alpha_mixer.inputs[2])
+		tree.links.new(alpha_mixer.outputs[0], output.inputs[0])
+		alpha_mixer.update()
+	# no alpha
+	else:
+		mat.blend_method = "OPAQUE"
+		tree.links.new(principled.outputs[0], output.inputs[0])
+
+	nodes_iterate(tree, output)
+
+	# print(tex_dic)
 	
 def create_ob(ob_name, ob_data):
 	ob = bpy.data.objects.new(ob_name, ob_data)
@@ -178,8 +279,10 @@ def LOD(ob, level):
 	coll.objects.link(ob)
 
 def load(operator, context, filepath = "", use_custom_normals = False, mirror_mesh = False):
-	mdl2_name = os.path.basename(filepath)
+	in_dir, mdl2_name = os.path.split(filepath)
 	data = load_mdl2(filepath)
+	# todo replace with this, but set kwarg filepath
+	# data = get_data(filepath, Ms2Format.Data)
 	
 	errors = []
 	# try:
@@ -199,7 +302,7 @@ def load(operator, context, filepath = "", use_custom_normals = False, mirror_me
 		ob["flag"] = model.flag
 		
 		LOD(ob, lod_i)
-		create_material(ob, model.material)
+		create_material(ob, in_dir, model.material)
 		
 		# set uv data
 		# todo: get UV count
