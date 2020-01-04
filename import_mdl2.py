@@ -166,14 +166,21 @@ def create_material(ob, in_dir, matname):
 		if "blendweights" in png_base or "warpoffset" in png_base:
 			continue
 		textures = [file for file in all_textures if file.lower().startswith(png_base)]
+		if not textures:
+			png_base = png_base.lower().replace("_eyes", "").replace("_fin", "").replace("_shell", "")
+			textures = [file for file in all_textures if file.lower().startswith(png_base)]
+		if not textures:
+			textures = [png_base+".png",]
+		print(textures)
 		for png_name in textures:
 			png_path = os.path.join(in_dir, png_name)
-			b_tex = load_tex(tree, png_path)#
+			b_tex = load_tex(tree, png_path)
 			k = png_name.lower().split(".")[1]
 			tex_dic[k] = b_tex
 
+
 	# get diffuse and AO
-	for diffuse_name in ("pbasediffusetexture", "pbasecolourtexture"):
+	for diffuse_name in ("pbasediffusetexture", "pbasecolourtexture", "pbasecolourandmasktexture"):
 		# get diffuse
 		if diffuse_name in tex_dic:
 			diffuse = tex_dic[diffuse_name]
@@ -204,14 +211,14 @@ def create_material(ob, in_dir, matname):
 		tree.links.new(normal_map.outputs[0], principled.inputs["Normal"])
 
 	# PZ - specularity?
-	for spec_name in ( "proughnesspackedtexture_01",):
+	for spec_name in ( "proughnesspackedtexture_02",):
 		if spec_name in tex_dic:
 			specular = tex_dic[spec_name]
 			specular.image.colorspace_settings.name = "Non-Color"
 			tree.links.new(specular.outputs[0], principled.inputs["Specular"])
 
 	# PZ - roughness?
-	for roughness_name in ( "proughnesspackedtexture_02",):
+	for roughness_name in ( "proughnesspackedtexture_01",):
 		if roughness_name in tex_dic:
 			roughness = tex_dic[roughness_name]
 			roughness.image.colorspace_settings.name = "Non-Color"
