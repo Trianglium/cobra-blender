@@ -99,14 +99,12 @@ def save(operator, context, filepath = ''):
 				# this will also calculate loop normal
 				me.calc_tangents()
 				verts = [ ]
-				# dummy_vertices = []
+				# use a dict mapping dummy vertices to their index for fast lookup
 				dummy_vertices = {}
 				
 				count_unique = 0
 				count_reused = 0
-				
-				# side note: to update an array, use model.verts.update_size()
-				
+
 				# loop faces
 				for face in me.polygons:
 					tri = []

@@ -141,17 +141,15 @@ def append_armature_modifier(b_obj, b_armature):
 		b_mod.use_vertex_groups = True
 
 
-def create_material(ob, in_dir, matname):
+def create_material(in_dir, matname):
 	
-	print("MATERIAL:",matname)
-	# only create the material if we haven't already created it, then just grab it
+	print(f"Importing material {matname}")
+	# only create the material if it doesn't exist in the blend file, then just grab it
+	# but we overwrite its contents anyway
 	if matname not in bpy.data.materials:
 		mat = bpy.data.materials.new(matname)
 	else:
 		mat = bpy.data.materials[matname]
-	# now finally set all the textures we have in the mesh
-	me = ob.data
-	me.materials.append(mat)
 
 	fgm_path = os.path.join(in_dir, matname + ".fgm")
 	# print(fgm_path)
@@ -179,7 +177,7 @@ def create_material(ob, in_dir, matname):
 			textures = [file for file in all_textures if file.lower().startswith(png_base)]
 		if not textures:
 			textures = [png_base+".png",]
-		print(textures)
+		# print(textures)
 		for png_name in textures:
 			png_path = os.path.join(in_dir, png_name)
 			b_tex = load_tex(tree, png_path)
@@ -264,8 +262,7 @@ def create_material(ob, in_dir, matname):
 		tree.links.new(principled.outputs[0], output.inputs[0])
 
 	nodes_iterate(tree, output)
-
-	# print(tex_dic)
+	return mat
 
 
 def create_ob(ob_name, ob_data):
@@ -297,6 +294,7 @@ def LOD(ob, level):
 
 
 def load(operator, context, filepath = "", use_custom_normals = False, mirror_mesh = False):
+	start_time = time.time()
 	in_dir, mdl2_name = os.path.split(filepath)
 	bare_name = os.path.splitext(mdl2_name)[0]
 	data = load_mdl2(filepath)
@@ -305,7 +303,7 @@ def load(operator, context, filepath = "", use_custom_normals = False, mirror_me
 
 	errors = []
 	b_armature_obj = import_armature(data)
-
+	created_materials = {}
 	# print("data.models",data.mdl2_header.models)
 	for model_i, model in enumerate(data.mdl2_header.models):
 		lod_i = model.lod_index
@@ -319,7 +317,17 @@ def load(operator, context, filepath = "", use_custom_normals = False, mirror_me
 		ob["flag"] = model.flag
 		
 		LOD(ob, lod_i)
-		create_material(ob, in_dir, model.material)
+		# additionally keep track here so we create a node tree only once during import
+		# but make sure that we overwrite existing materials:
+		if model.material not in created_materials:
+			mat = create_material(in_dir, model.material)
+			created_materials[model.material] = mat
+		else:
+			print(f"Already imported material {model.material}")
+			mat = created_materials[model.material]
+		# link material to mesh
+		me = ob.data
+		me.materials.append(mat)
 		
 		# set uv data
 		# todo: get UV count
@@ -397,6 +405,5 @@ def load(operator, context, filepath = "", use_custom_normals = False, mirror_me
 		if data.bone_info:
 			append_armature_modifier(ob, b_armature_obj)
 
-	success = '\nFinished MS2 Import'
-	print(success)
+	print(f"Finished MDL2 import in {time.time()-start_time:.2f} seconds!")
 	return errors
