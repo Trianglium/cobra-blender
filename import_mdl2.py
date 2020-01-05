@@ -12,11 +12,13 @@ from .utils.node_util import load_tex, get_tree
 from .pyffi_ext.formats.ms2 import Ms2Format
 from .pyffi_ext.formats.fgm import FgmFormat
 
+
 def get_data(p, d):
 	dat = d()
 	with open(p, "rb") as stream:
 		dat.read(stream)
 	return dat
+
 
 def load_mdl2(file_path):
 	"""Loads a mdl2 from the given file path"""
@@ -29,13 +31,15 @@ def load_mdl2(file_path):
 		data.read(stream, data, file=file_path)
 	return data
 
+
 def bone_name_for_blender(n):
 	if "def_r_" in n:
 		n = n.replace("def_r_", "def_")+".R"
 	if "def_l_" in n:
 		n = n.replace("def_l_", "def_")+".L"
 	return n
-	
+
+
 def ovl_bones(b_armature_data):
 	# first just get the roots, then extend it
 	roots = [bone for bone in b_armature_data.bones if not bone.parent]
@@ -46,6 +50,7 @@ def ovl_bones(b_armature_data):
 		out_bones += [child for child in bone.children]
 	
 	return [b.name for b in out_bones]
+
 
 def import_armature(data):
 	"""Scans an armature hierarchy, and returns a whole armature.
@@ -65,10 +70,10 @@ def import_armature(data):
 		bone_names = [bone_name_for_blender(n) for n in data.bone_names]
 		# make armature editable and create bones
 		bpy.ops.object.mode_set(mode='EDIT', toggle=False)
-		print(bone_names)
-		print("ovl order")
+		# print(bone_names)
+		# print("ovl order")
 		for bone_name, o_mat, o_parent_ind in zip(bone_names, bone_info.bone_matrices, bone_info.bone_parents):
-			print(bone_name)
+			# print(bone_name)
 			# create a new bone
 			if not bone_name:
 				bone_name = "Dummy"
@@ -96,14 +101,15 @@ def import_armature(data):
 		
 		fix_bone_lengths(b_armature_data)
 		bpy.ops.object.mode_set(mode='OBJECT', toggle=False)
-		print("blender order")
-		for bone in b_armature_data.bones:
-			print(bone.name)
-		print("restored order")
-		bone_names_restored = ovl_bones(b_armature_data)
-		for bone in bone_names_restored:
-			print(bone)
+		# print("blender order")
+		# for bone in b_armature_data.bones:
+		# 	print(bone.name)
+		# print("restored order")
+		# bone_names_restored = ovl_bones(b_armature_data)
+		# for bone in bone_names_restored:
+		# 	print(bone)
 		return b_armature_obj
+
 
 def fix_bone_lengths(b_armature_data):
 	"""Sets all edit_bones to a suitable length."""
@@ -123,6 +129,7 @@ def fix_bone_lengths(b_armature_data):
 				bone_length = b_edit_bone.parent.length
 			b_edit_bone.length = bone_length
 
+
 def append_armature_modifier(b_obj, b_armature):
 	"""Append an armature modifier for the object."""
 	if b_obj and b_armature:
@@ -132,6 +139,7 @@ def append_armature_modifier(b_obj, b_armature):
 		b_mod.object = b_armature
 		b_mod.use_bone_envelopes = False
 		b_mod.use_vertex_groups = True
+
 
 def create_material(ob, in_dir, matname):
 	
@@ -177,7 +185,6 @@ def create_material(ob, in_dir, matname):
 			b_tex = load_tex(tree, png_path)
 			k = png_name.lower().split(".")[1]
 			tex_dic[k] = b_tex
-
 
 	# get diffuse and AO
 	for diffuse_name in ("pbasediffusetexture", "pbasecolourtexture", "pbasecolourandmasktexture"):
@@ -259,12 +266,14 @@ def create_material(ob, in_dir, matname):
 	nodes_iterate(tree, output)
 
 	# print(tex_dic)
-	
+
+
 def create_ob(ob_name, ob_data):
 	ob = bpy.data.objects.new(ob_name, ob_data)
 	bpy.context.scene.collection.objects.link(ob)
 	bpy.context.view_layer.objects.active = ob
 	return ob
+
 
 def mesh_from_data(name, verts, faces, wireframe = True):
 	me = bpy.data.meshes.new(name)
@@ -274,7 +283,8 @@ def mesh_from_data(name, verts, faces, wireframe = True):
 	# if wireframe:
 	# 	ob.draw_type = 'WIRE'
 	return ob, me
-	
+
+
 def LOD(ob, level):
 	lod = "LOD"+str(level)
 	if lod not in bpy.data.collections:
@@ -285,26 +295,26 @@ def LOD(ob, level):
 	# Link active object to the new collection
 	coll.objects.link(ob)
 
+
 def load(operator, context, filepath = "", use_custom_normals = False, mirror_mesh = False):
 	in_dir, mdl2_name = os.path.split(filepath)
+	bare_name = os.path.splitext(mdl2_name)[0]
 	data = load_mdl2(filepath)
 	# todo replace with this, but set kwarg filepath
 	# data = get_data(filepath, Ms2Format.Data)
-	
+
 	errors = []
-	# try:
 	b_armature_obj = import_armature(data)
-	# except:
-		# print("Armature failed")
-	print("data.models",data.mdl2_header.models)
+
+	# print("data.models",data.mdl2_header.models)
 	for model_i, model in enumerate(data.mdl2_header.models):
 		lod_i = model.lod_index
-		print("\nmodel_i",model_i)
-		print("lod_i",lod_i)
-		print("flag",model.flag)
-		print("bits",bin(model.flag) )
+		print("\nmodel_i", model_i)
+		print("lod_i", lod_i)
+		print("flag", model.flag)
+		print("bits", bin(model.flag))
 		# create object and mesh from data
-		ob, me = mesh_from_data(mdl2_name+"_LOD{}_model{}".format(lod_i, model_i), model.vertices, model.tris, wireframe = False)
+		ob, me = mesh_from_data(bare_name+f"_model{model_i}", model.vertices, model.tris, wireframe=False)
 		ob["add_shells"] = 0
 		ob["flag"] = model.flag
 		
@@ -314,8 +324,8 @@ def load(operator, context, filepath = "", use_custom_normals = False, mirror_me
 		# set uv data
 		# todo: get UV count
 		for uv_i in range(0, 4):
-			uvs = model.uv_layers[uv_i]
-			me.uv_layers.new( name = "UV"+str(uv_i) )
+			uvs = model.uvs[:, uv_i]
+			me.uv_layers.new(name=f"UV{uv_i}")
 			me.uv_layers[-1].data.foreach_set("uv", [uv for pair in [uvs[l.vertex_index] for l in me.loops] for uv in (pair[0], 1-pair[1])])
 		
 		# # todo: get vcol count, if it is vcol
@@ -338,8 +348,7 @@ def load(operator, context, filepath = "", use_custom_normals = False, mirror_me
 				bonename = bone_name_for_blender(bonename)
 				if bonename not in ob.vertex_groups: ob.vertex_groups.new( name = bonename )
 				ob.vertex_groups[bonename].add([i], weight, 'REPLACE')
-		
-		
+
 		# map normals so we can set them to the edge corners (stored per loop)
 		no_array = []
 		for face in me.polygons:
@@ -347,7 +356,7 @@ def load(operator, context, filepath = "", use_custom_normals = False, mirror_me
 				no_array.append(model.normals[vertex_index])
 				# no_array.append(model.tangents[vertex_index])
 			face.use_smooth = True
-			#and for rendering, make sure each poly is assigned to the material
+			# and for rendering, make sure each poly is assigned to the material
 			face.material_index = 0
 		
 		# set normals
@@ -366,7 +375,7 @@ def load(operator, context, filepath = "", use_custom_normals = False, mirror_me
 		
 		bpy.ops.object.mode_set(mode='EDIT')
 		if mirror_mesh:
-			bpy.ops.mesh.bisect(plane_co=(0,0,0), plane_no=(1,0,0), clear_inner=True)
+			bpy.ops.mesh.bisect(plane_co=(0, 0, 0), plane_no=(1, 0, 0), clear_inner=True)
 			bpy.ops.mesh.select_all(action='SELECT')
 			mod = ob.modifiers.new('Mirror', 'MIRROR')
 			mod.use_clip = True
@@ -377,7 +386,7 @@ def load(operator, context, filepath = "", use_custom_normals = False, mirror_me
 		bpy.ops.mesh.tris_convert_to_quads()
 		# shells are messed up by remove doubles, affected faces have their dupe faces removed
 		if not use_custom_normals and model.flag not in (565, 885):
-			bpy.ops.mesh.remove_doubles(threshold = 0.000001, use_unselected = False)
+			bpy.ops.mesh.remove_doubles(threshold=0.000001, use_unselected=False)
 		try:
 			bpy.ops.uv.seams_from_islands()
 		except:
@@ -388,7 +397,6 @@ def load(operator, context, filepath = "", use_custom_normals = False, mirror_me
 		if data.bone_info:
 			append_armature_modifier(ob, b_armature_obj)
 
-			
 	success = '\nFinished MS2 Import'
 	print(success)
 	return errors
