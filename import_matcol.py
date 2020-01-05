@@ -359,7 +359,7 @@ def create_material(matcol_path):
 	tree.links.new(ao.outputs[0], diffuse_premix.inputs["Color2"])
 	
 	tree.links.new(diffuse_premix.outputs[0], principled.inputs["Base Color"])
-	tree.links.new(roughness.outputs[0], principled.inputs["Roughness"])
+	tree.links.new(roughness.outputs[0], principled.inputs["Metallic"])
 	tree.links.new(bump.outputs[0], principled.inputs["Normal"])
 	tree.links.new(principled.outputs[0], output.inputs[0])
 		
