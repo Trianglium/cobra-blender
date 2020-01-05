@@ -397,8 +397,11 @@ def load_matcol(matcol_path):
 			fgm_path = os.path.join(lib_dir, layer.name+".fgm")
 			# print(fgm_path)
 			fgm_data = get_data(fgm_path, FgmFormat.Data)
-			base_index = fgm_data.fgm_header.textures[0].layers[1]
-			height_index = fgm_data.fgm_header.textures[1].layers[1]
+			if fgm_data.fgm_header.textures[0].is_textured == 8:
+				base_index = fgm_data.fgm_header.textures[0].indices[1]
+				height_index = fgm_data.fgm_header.textures[1].indices[1]
+			else:
+				print("tell Developers not using indices")
 			print("base_array_index",base_index)
 			print("height_array_index",height_index)
 			print("base",base_textures[base_index])
