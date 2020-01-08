@@ -16,6 +16,13 @@ import bpy.utils.previews
 preview_collection = bpy.utils.previews.new()
 
 
+def handle_errors(inst, errors):
+	for error in errors:
+		inst.report({"ERROR"}, error)
+		print(error)
+	return {'FINISHED'}
+
+
 class ImportBani(bpy.types.Operator, ImportHelper):
 	"""Import from Cobra baked animations file format (.bani)"""
 	bl_idname = "import_scene.cobra_bani"
@@ -24,7 +31,7 @@ class ImportBani(bpy.types.Operator, ImportHelper):
 	filename_ext = ".bani"
 	filter_glob: StringProperty(default="*.bani", options={'HIDDEN'})
 	files: CollectionProperty(type=bpy.types.PropertyGroup)
-	# set_fps = BoolProperty(name="Adjust FPS", description="Set the scene to 30 frames per second to conform with the BFs.", default=True)
+	# set_fps = BoolProperty(name="Adjust FPS", description="Set the scene to FPS used by BANI", default=True)
 
 	def execute(self, context):
 		from . import import_bani
@@ -44,9 +51,7 @@ class ImportMatcol(bpy.types.Operator, ImportHelper):
 		from . import import_matcol
 		keywords = self.as_keywords(ignore=("axis_forward", "axis_up", "filter_glob"))
 		errors = import_matcol.load(self, context, **keywords)
-		for error in errors:
-			self.report({"ERROR"}, error)
-		return {'FINISHED'}
+		return handle_errors(self, errors)
 
 
 class ImportMDL2(bpy.types.Operator, ImportHelper):
@@ -63,9 +68,7 @@ class ImportMDL2(bpy.types.Operator, ImportHelper):
 		from . import import_mdl2
 		keywords = self.as_keywords(ignore=("axis_forward", "axis_up", "filter_glob"))
 		errors = import_mdl2.load(self, context, **keywords)
-		for error in errors:
-			self.report({"ERROR"}, error)
-		return {'FINISHED'}
+		return handle_errors(self, errors)
 
 
 class ExportMDL2(bpy.types.Operator, ExportHelper):
@@ -79,9 +82,7 @@ class ExportMDL2(bpy.types.Operator, ExportHelper):
 		from . import export_mdl2
 		keywords = self.as_keywords(ignore=("axis_forward", "axis_up", "filter_glob", "check_existing"))
 		errors = export_mdl2.save(self, context, **keywords)
-		for error in errors:
-			self.report({"ERROR"}, error)
-		return {'FINISHED'}
+		return handle_errors(self, errors)
 
 
 class StripShells(bpy.types.Operator):
@@ -102,6 +103,7 @@ class StripShells(bpy.types.Operator):
 			shell.strip_shells_wrapper(self.num_shells)
 		except Exception as err:
 			self.report({"ERROR"}, str(err))
+			print(err)
 		return {'FINISHED'}
 
 
@@ -117,6 +119,7 @@ class CreateFins(bpy.types.Operator):
 			shell.create_fins_wrapper()
 		except Exception as err:
 			self.report({"ERROR"}, str(err))
+			print(err)
 		return {'FINISHED'}
 
 

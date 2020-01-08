@@ -49,6 +49,9 @@ def ensure_tri_modifier(ob):
 
 def save(operator, context, filepath = ''):
 	errors = []
+	# todo - get and set this per model, possibly according to model.flag
+	num_uvs = 4
+
 	if not os.path.isfile(filepath):
 		errors.append( "{} does not exist. You must open an existing MDL2 file for exporting.".format(filepath) )
 		return errors
@@ -90,9 +93,23 @@ def save(operator, context, filepath = ''):
 				except:
 					print("Bad name, skipping",ob.name)
 					continue
-				print(ind)
+				print("Model slot",ind)
+
 				# we get the corresponding mdl2 model
 				model = data.mdl2_header.models[ind]
+
+				if not len(me.vertices):
+					errors.append(f"Model {ob.name} has no vertices!")
+					return errors
+
+				if not len(me.polygons):
+					errors.append(f"Model {ob.name} has no polygons!")
+					return errors
+
+				if len(me.uv_layers) != num_uvs:
+					errors.append(f"Model {ob.name} has {len(me.uv_layers)} UV layers, but {num_uvs} were expected!")
+					return errors
+
 				unweighted_vertices = []
 				tris = []
 				# tangents have to be pre-calculated
@@ -109,7 +126,7 @@ def save(operator, context, filepath = ''):
 				for face in me.polygons:
 					tri = []
 					if len(face.loop_indices) != 3:
-						errors.append( f"Model {ob.name} is not triangulated!" )
+						errors.append(f"Model {ob.name} is not triangulated!")
 						return errors
 					# loop over face loop
 					for loop_index in face.loop_indices:
@@ -120,11 +137,8 @@ def save(operator, context, filepath = ''):
 						position = b_vert.co
 						tangent = b_loop.tangent
 						normal = b_loop.normal
-						uvs = [(uv_layer.data[loop_index].uv.x, 1-uv_layer.data[loop_index].uv.y) for uv_layer in me.uv_layers[0:4] ]
-						
-						# by default create a new packed vert for this blender vert
-						must_pack = True
-						
+						uvs = [(uv_layer.data[loop_index].uv.x, 1-uv_layer.data[loop_index].uv.y) for uv_layer in me.uv_layers[:num_uvs]]
+
 						# create a dummy bytes str for indexing
 						dummy = struct.pack('<10f', *position, *uvs[0], *uvs[1], *tangent )
 						try:
@@ -163,7 +177,7 @@ def save(operator, context, filepath = ''):
 									try: w.append( [bones_table[vgroup_name], vertex_group.weight] )
 									except: w.append( [int(vgroup_name), vertex_group.weight] )
 							w_s = sorted(w, key = lambda x:x[1], reverse = True)[0:4]
-							#pad the weight list to 4 bones, ie. add empty bones if missing
+							# pad the weight list to 4 bones, ie. add empty bones if missing
 							for i in range(0, 4-len(w_s)): w_s.append( [0,0] )
 							# summed weights
 							sw = sum(w[1] for w in w_s)
