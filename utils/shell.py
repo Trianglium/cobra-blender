@@ -29,7 +29,10 @@ def create_fins_wrapper():
 
 
 def strip_shells(ob, shell_count=6):
-	
+
+	if "add_shells" in ob:
+		if ob["add_shells"] == 5:
+			raise AttributeError(f"Model {ob.name} has 'add_shells' set to 5 - can not remove shells from a mesh that has none")
 	me = ob.data
 	# Get a BMesh representation
 	bm = bmesh.new()	 # create an empty BMesh

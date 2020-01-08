@@ -311,10 +311,17 @@ def load(operator, context, filepath = "", use_custom_normals = False, mirror_me
 		print("lod_i", lod_i)
 		print("flag", model.flag)
 		print("bits", bin(model.flag))
+		tris = model.tris
+		if model.flag in (565, 885):
+			tris = model.tris[:len(model.tris)//6]
+			print("automatically stripped shells from ",model_i)
+			num_add_shells = 5
+		else:
+			num_add_shells = 0
 		# create object and mesh from data
-		ob, me = mesh_from_data(bare_name+f"_model{model_i}", model.vertices, model.tris, wireframe=False)
-		ob["add_shells"] = 0
+		ob, me = mesh_from_data(bare_name+f"_model{model_i}", model.vertices, tris, wireframe=False)
 		ob["flag"] = model.flag
+		ob["add_shells"] = num_add_shells
 		
 		LOD(ob, lod_i)
 		# additionally keep track here so we create a node tree only once during import
@@ -393,7 +400,8 @@ def load(operator, context, filepath = "", use_custom_normals = False, mirror_me
 			mod.merge_threshold = 0.001
 		bpy.ops.mesh.tris_convert_to_quads()
 		# shells are messed up by remove doubles, affected faces have their dupe faces removed
-		if not use_custom_normals and model.flag not in (565, 885):
+		# since we are now stripping shells, shell meshes can use remove doubles but fins still can not
+		if not use_custom_normals and model.flag not in (565, ):
 			bpy.ops.mesh.remove_doubles(threshold=0.000001, use_unselected=False)
 		try:
 			bpy.ops.uv.seams_from_islands()
