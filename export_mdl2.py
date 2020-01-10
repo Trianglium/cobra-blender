@@ -48,7 +48,7 @@ def ensure_tri_modifier(ob):
 		ob.modifiers.new('Triangulate', 'TRIANGULATE')
 
 
-def save(filepath=''):
+def save(operator, context, filepath=''):
 	errors = []
 	start_time = time.time()
 	# todo - get and set this per model, possibly according to model.flag
