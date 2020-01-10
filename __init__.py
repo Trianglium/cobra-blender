@@ -81,7 +81,7 @@ class ExportMDL2(bpy.types.Operator, ExportHelper):
 	def execute(self, context):
 		from . import export_mdl2
 		keywords = self.as_keywords(ignore=("axis_forward", "axis_up", "filter_glob", "check_existing"))
-		errors = export_mdl2.save(self, context, **keywords)
+		errors = export_mdl2.save(**keywords)
 		return handle_errors(self, errors)
 
 
