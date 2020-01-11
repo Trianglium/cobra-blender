@@ -61,6 +61,7 @@ def import_armature(data):
 		armature_name = "Test"
 		b_armature_data = bpy.data.armatures.new(armature_name)
 		b_armature_data.display_type = 'STICK'
+		b_armature_data.show_axes = True
 		# set axis orientation for export
 		# b_armature_data.niftools.axis_forward = NifOp.props.axis_forward
 		# b_armature_data.niftools.axis_up = NifOp.props.axis_up
@@ -101,6 +102,12 @@ def import_armature(data):
 		
 		fix_bone_lengths(b_armature_data)
 		bpy.ops.object.mode_set(mode='OBJECT', toggle=False)
+
+		for i, bone_name in enumerate(bone_names):
+			print(i, bone_name)
+			bone = b_armature_obj.pose.bones[bone_name]
+			# bone = b_armature_data.bones[bone_name]
+			bone["index"] = i
 		# print("blender order")
 		# for bone in b_armature_data.bones:
 		# 	print(bone.name)
