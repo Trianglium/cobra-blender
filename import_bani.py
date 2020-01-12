@@ -146,6 +146,6 @@ def load(operator, context, files = [], filepath = "", set_fps=False):
 			# print(rot_mat)
 			pbone.matrix = rot_mat
 
-			pbone.keyframe_insert(data_path="rotation_euler" ,frame=frame_i, group = bone_name)
-			pbone.keyframe_insert(data_path="location" ,frame=frame_i, group = bone_name)
+			pbone.keyframe_insert(data_path="rotation_euler", frame=frame_i, group=bone_name)
+			pbone.keyframe_insert(data_path="location", frame=frame_i, group=bone_name)
 	return {'FINISHED'}
