@@ -344,8 +344,8 @@ def load(operator, context, filepath = "", use_custom_normals = False, mirror_me
 		me.materials.append(mat)
 		
 		# set uv data
-		# todo: get UV count
-		for uv_i in range(0, 4):
+		num_uv_layers = model.uvs.shape[1]
+		for uv_i in range(num_uv_layers):
 			uvs = model.uvs[:, uv_i]
 			me.uv_layers.new(name=f"UV{uv_i}")
 			me.uv_layers[-1].data.foreach_set("uv", [uv for pair in [uvs[l.vertex_index] for l in me.loops] for uv in (pair[0], 1-pair[1])])
