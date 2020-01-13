@@ -349,15 +349,16 @@ def load(operator, context, filepath = "", use_custom_normals = False, mirror_me
 			uvs = model.uvs[:, uv_i]
 			me.uv_layers.new(name=f"UV{uv_i}")
 			me.uv_layers[-1].data.foreach_set("uv", [uv for pair in [uvs[l.vertex_index] for l in me.loops] for uv in (pair[0], 1-pair[1])])
-		
-		# # todo: get vcol count, if it is vcol
-		# for col_i in range(2):
-		# 	vcols = model.colors[col_i]
-		# 	me.vertex_colors.new("RGB"+str(col_i))
-		# 	me.vertex_colors[-1].data.foreach_set("color", [c for col in [vcols[l.vertex_index] for l in me.loops] for c in (col.r/255, col.g/255, col.b/255)])
-		# 	me.vertex_colors.new("AAA"+str(col_i))
-		# 	me.vertex_colors[-1].data.foreach_set("color", [c for col in [vcols[l.vertex_index] for l in me.loops] for c in (col.a/255, col.a/255, col.a/255)])
-		
+
+		if model.colors is not None:
+			num_vcol_layers = model.colors.shape[1]
+			for col_i in range(num_vcol_layers):
+				vcols = model.colors[:, col_i]
+				me.vertex_colors.new(name=f"RGB{col_i}")
+				me.vertex_colors[-1].data.foreach_set("color", [c for col in [vcols[l.vertex_index] for l in me.loops] for c in (col[0],col[1],col[2], 1)])
+				me.vertex_colors.new(name=f"AAA{col_i}")
+				me.vertex_colors[-1].data.foreach_set("color", [c for col in [vcols[l.vertex_index] for l in me.loops] for c in (col[3],col[3],col[3], 1)])
+
 		# me.vertex_colors.new("tangents")
 		# me.vertex_colors[-1].data.foreach_set("color", [c for col in [model.tangents[l.vertex_index] for l in me.loops] for c in col])
 		
