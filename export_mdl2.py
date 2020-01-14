@@ -51,8 +51,6 @@ def ensure_tri_modifier(ob):
 def save(operator, context, filepath=''):
 	errors = []
 	start_time = time.time()
-	# todo - get and set this per model, possibly according to model.flag
-	num_uvs = 4
 	print(f"\nExporting {filepath} into export subfolder...")
 	if not os.path.isfile(filepath):
 		errors.append(f"{filepath} does not exist. You must open an existing MDL2 file for exporting.")
@@ -98,6 +96,12 @@ def save(operator, context, filepath=''):
 
 				# we get the corresponding mdl2 model
 				model = data.mdl2_header.models[ind]
+				# perhaps we want to update model.flag from ob["flag"]
+				model.update_dtype()
+				num_uvs = model.get_uv_count()
+				num_vcols = model.get_vcol_count()
+				print("num_uvs",num_uvs)
+				print("num_vcols",num_vcols)
 
 				if not len(me.vertices):
 					errors.append(f"Model {ob.name} has no vertices!")
@@ -111,6 +115,10 @@ def save(operator, context, filepath=''):
 					errors.append(f"Model {ob.name} has {len(me.uv_layers)} UV layers, but {num_uvs} were expected!")
 					return errors
 
+				if len(me.vertex_colors) != num_vcols:
+					errors.append(f"Model {ob.name} has {len(me.vertex_colors)} Vertex Color layers, but {num_vcols} were expected!")
+					return errors
+
 				uv_layer_lengths = [len(uv_layer.data) for uv_layer in me.uv_layers[:num_uvs]]
 				if uv_layer_lengths.count(uv_layer_lengths[0]) != num_uvs:
 					print(uv_layer_lengths, uv_layer_lengths.count(uv_layer_lengths[0]), num_uvs)
@@ -122,20 +130,26 @@ def save(operator, context, filepath=''):
 				# tangents have to be pre-calculated
 				# this will also calculate loop normal
 				me.calc_tangents()
+				# stores values retrieved from blender, will be packed into array by pyffi
 				verts = []
 				# use a dict mapping dummy vertices to their index for fast lookup
+				# this is used to convert blender vertices (several UVs, normals per face corner) to mdl2 vertices
 				dummy_vertices = {}
-
 				count_unique = 0
 				count_reused = 0
 
-				# loop faces
+				# defaults that may or may not be set later on
+				unk_0 = 0
+				fur_length = None
+				# loop faces and collect unique and repeated vertices
 				for face in me.polygons:
-					tri = []
 					if len(face.loop_indices) != 3:
+						# this is a bug - we are applying the triangulation modifier above
 						errors.append(f"Model {ob.name} is not triangulated!")
 						return errors
-					# loop over face loop
+					# build indices into vertex buffer for the current face
+					tri = []
+					# loop over face loop to get access to face corner data (normals, uvs, vcols, etc)
 					for loop_index in face.loop_indices:
 						b_loop = me.loops[loop_index]
 						b_vert = me.vertices[b_loop.vertex_index]
@@ -144,49 +158,50 @@ def save(operator, context, filepath=''):
 						position = b_vert.co
 						tangent = b_loop.tangent
 						normal = b_loop.normal
-						uvs = [(uv_layer.data[loop_index].uv.x, 1-uv_layer.data[loop_index].uv.y) for uv_layer in me.uv_layers[:num_uvs]]
-
+						uvs = [(layer.data[loop_index].uv.x, 1-layer.data[loop_index].uv.y) for layer in me.uv_layers]
 						# create a dummy bytes str for indexing
-						dummy = struct.pack('<10f', *position, *uvs[0], *uvs[1], *tangent )
+						float_items = [*position, *[c for uv in uvs[:2] for c in uv], *tangent]
+						dummy = struct.pack(f'<{len(float_items)}f', *float_items)
+						# see if this dummy key exists
 						try:
+							# if it does - reuse it by grabbing its index from the dict
 							v_index = dummy_vertices[dummy]
 							count_reused += 1
 						except:
+							# it doesn't, so we have to fill in additional data
 							v_index = count_unique
 							dummy_vertices[dummy] = v_index
 							count_unique += 1
 
-							# create ms2 vertex
-							ms2_vert = Ms2Format.PackedVert()
-							# set pack base
-							ms2_vert.base = data.mdl2_header.model_info.pack_offset
-							verts.append(ms2_vert)
+							# now collect any missing vert data that was not needed for the splitting of blender verts
 
-							# store the actual vert data
-							ms2_vert.position = position
-							ms2_vert.tangent = tangent
-							ms2_vert.normal = normal
-							ms2_vert.uvs = uvs
+							# collect vertex colors
+							vcols = [(x for x in layer.data[loop_index].color) for layer in me.vertex_colors]
 
-							# get the weights only if it's a new vert
+							# get the weights
 							w = []
 							for vertex_group in b_vert.groups:
 								vgroup_name = ob.vertex_groups[vertex_group.group].name
 								# get the unk0
 								if vgroup_name == "unk0":
-									ms2_vert.unk_0 = min(int(round(vertex_group.weight*255.0)), 255)
+									unk_0 = vertex_group.weight
 								elif vgroup_name == "fur_length":
 									# only store this hack for shells, never for fins
 									if model.flag == 885:
-										ms2_vert.fur_length = vertex_group.weight
+										fur_length = vertex_group.weight
 								else:
 									# avoid check for dummy vertex groups without corresponding bones
-									try: w.append( [bones_table[vgroup_name], vertex_group.weight] )
-									except: w.append( [int(vgroup_name), vertex_group.weight] )
+									try:
+										w.append([bones_table[vgroup_name], vertex_group.weight])
+									except:
+										try:
+											w.append([int(vgroup_name), vertex_group.weight])
+										except:
+											errors.append(f"Ignored extraneous vertex group {vgroup_name} on mesh {ob.name}!")
 							# get the 4 strongest influences on this vert
-							w_s = sorted(w, key = lambda x:x[1], reverse = True)[0:4]
+							w_s = sorted(w, key=lambda x: x[1], reverse=True)[0:4]
 							# pad the weight list to 4 bones, ie. add empty bones if missing
-							for i in range(0, 4-len(w_s)): w_s.append( [0,0] )
+							for i in range(0, 4-len(w_s)): w_s.append([0, 0])
 							# summed weights
 							sw = sum(w[1] for w in w_s)
 							# print(sw)
@@ -194,42 +209,52 @@ def save(operator, context, filepath=''):
 								# normalize
 								for x in range(4):
 									w_s[x][1] /= sw
-								ms2_vert.weights = w_s
 								# skin partition
-								ms2_vert.bone_index = w_s[0][0]
+								bone_index = w_s[0][0]
 							elif b_loop.vertex_index not in unweighted_vertices:
 								# print("Sum of weights",sw)
 								unweighted_vertices.append(b_loop.vertex_index)
 							if v_index > MAX_USHORT:
-								errors.append("f{ob.name} has too many MDL2 verts. The limit is {MAX_USHORT}. \nBlender vertices have to be duplicated on every UV seam, hence the increase.")
+								errors.append(f"{ob.name} has too many MDL2 verts. The limit is {MAX_USHORT}. \nBlender vertices have to be duplicated on every UV seam, hence the increase.")
 								return errors
+
+							# ensure that we have 4 weights at this point
+							assert (len(w_s) == 4)
+							# split the list of tuples into two separate lists
+							bone_ids, bone_weights = zip(*w_s)
+							# store all raw blender data for pyffi
+							verts.append((position, normal, unk_0, tangent, bone_index, uvs, vcols, bone_ids, bone_weights, fur_length))
 						tri.append(v_index)
-					tris.append( tri )
+					tris.append(tri)
 
 				print("count_unique",count_unique)
 				print("count_reused",count_reused)
 
-				out_tris = list(tris)
+				# report unweighted vertices
+				if unweighted_vertices:
+					errors.append(f"{ob.name} has {len(unweighted_vertices)} unweighted vertices!")
+					return errors
+
 				# set shell count if not present
 				if "add_shells" in ob:
 					shell_count = ob["add_shells"]
 				else:
 					shell_count = 0
 					ob["add_shells"] = 0
+				# extend tri array according to shell count
 				print("Got to add shells",shell_count)
+				out_tris = list(tris)
 				for shell in range(shell_count):
 					print("Shell",shell)
 					out_tris.extend(tris)
 
 				# update vert & tri array
-				model.verts = verts
+				model.base = data.mdl2_header.model_info.pack_offset
+				# transfer raw verts into model data packed array
+				model.set_verts(verts)
 				model.tris = out_tris
-				if unweighted_vertices:
-					print("unweighted_vertices",unweighted_vertices)
-					errors.append(f"#{ob.name} has {len(unweighted_vertices)} unweighted vertices!")
-					return errors
 
-		# check if any is empty
+		# check if any modeldata is empty
 		for i, model in enumerate(data.mdl2_header.models):
 			if not model.tri_indices or not model.verts:
 				errors.append(f"MDL2 Modeldata #{i} has not been populated. \nEnsure that the name of the blender model for that number follows the naming convention.")
@@ -237,5 +262,7 @@ def save(operator, context, filepath=''):
 
 		# write modified data
 		data.write(stream, data, file=filepath)
+
 	print(f"\nFinished Mdl2 Export in {time.time()-start_time:.2f} seconds")
-	return errors
+	# only return unique errors
+	return set(errors)

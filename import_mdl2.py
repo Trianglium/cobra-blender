@@ -355,11 +355,6 @@ def load(operator, context, filepath = "", use_custom_normals = False, mirror_me
 			num_vcol_layers = model.colors.shape[1]
 			for col_i in range(num_vcol_layers):
 				vcols = model.colors[:, col_i]
-				# me.vertex_colors.new(name=f"RGB{col_i}")
-				# me.vertex_colors[-1].data.foreach_set("color", [c for col in [vcols[l.vertex_index] for l in me.loops] for c in (col[0],col[1],col[2], 1)])
-				# me.vertex_colors.new(name=f"AAA{col_i}")
-				# me.vertex_colors[-1].data.foreach_set("color", [c for col in [vcols[l.vertex_index] for l in me.loops] for c in (col[3],col[3],col[3], 1)])
-
 				me.vertex_colors.new(name=f"RGBA{col_i}")
 				me.vertex_colors[-1].data.foreach_set("color", [c for col in [vcols[l.vertex_index] for l in me.loops] for c in col])
 
