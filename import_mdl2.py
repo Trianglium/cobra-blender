@@ -164,7 +164,7 @@ def create_material(in_dir, matname):
 		fgm_data = get_data(fgm_path, FgmFormat.Data)
 	except FileNotFoundError:
 		print(f"{fgm_path} does not exist!")
-		return
+		return mat
 	# base_index = fgm_data.fgm_header.textures[0].layers[1]
 	# height_index = fgm_data.fgm_header.textures[1].layers[1]
 	tree = get_tree(mat)
