@@ -106,7 +106,7 @@ def import_armature(data):
 		armature_name = "Test"
 		b_armature_data = bpy.data.armatures.new(armature_name)
 		b_armature_data.display_type = 'STICK'
-		b_armature_data.show_axes = True
+		# b_armature_data.show_axes = True
 		# set axis orientation for export
 		# b_armature_data.niftools.axis_forward = NifOp.props.axis_forward
 		# b_armature_data.niftools.axis_up = NifOp.props.axis_up
@@ -123,6 +123,7 @@ def import_armature(data):
 				bone_name = "Dummy"
 			b_edit_bone = b_armature_data.edit_bones.new(bone_name)
 
+			# local space matrix, in ms2 orientation
 			n_bind = mathutils.Quaternion((bone.rot.w, bone.rot.x, bone.rot.y, bone.rot.z)).to_matrix().to_4x4()
 			n_bind.translation = (bone.loc.x, bone.loc.y, bone.loc.z)
 
@@ -132,14 +133,18 @@ def import_armature(data):
 					parent_name = bone_names[o_parent_ind]
 					b_parent_bone = b_armature_data.edit_bones[parent_name]
 					b_edit_bone.parent = b_parent_bone
+					# calculate ms2 armature space matrix
 					n_bind = mats[parent_name] @ n_bind
 			except:
-				print("error")
-				pass
+				print(f"Bone hierarchy error for bone {bone_name} with parent index {o_parent_ind}")
 
+			# store the ms2 armature space matrix
 			mats[bone_name] = n_bind
 
+			# change orientation for blender bones
 			b_bind = matrix_util.nif_bind_to_blender_bind(n_bind)
+
+			# set orientation to blender bone
 			tail, roll = matrix_util.mat3_to_vec_roll(b_bind.to_3x3())
 			b_edit_bone.head = b_bind.to_translation()
 			b_edit_bone.tail = tail + b_edit_bone.head
