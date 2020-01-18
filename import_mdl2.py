@@ -326,7 +326,7 @@ def create_ob(ob_name, ob_data):
 	return ob
 
 
-def mesh_from_data(name, verts, faces, wireframe = True):
+def mesh_from_data(name, verts, faces, wireframe=True):
 	me = bpy.data.meshes.new(name)
 	me.from_pydata(verts, [], faces)
 	me.update()
@@ -345,6 +345,13 @@ def LOD(ob, level):
 		coll = bpy.data.collections[lod]
 	# Link active object to the new collection
 	coll.objects.link(ob)
+	# show lod 0, hide the others
+	should_hide = level != 0
+	# get view layer, hide collection there
+	vlayer = bpy.context.view_layer
+	vlayer.layer_collection.children[lod].hide_viewport = should_hide
+	# hide object in view layer
+	ob.hide_set(should_hide, view_layer=vlayer)
 
 
 def load(operator, context, filepath = "", use_custom_normals = False, mirror_mesh = False):
@@ -376,8 +383,7 @@ def load(operator, context, filepath = "", use_custom_normals = False, mirror_me
 		ob, me = mesh_from_data(bare_name+f"_model{model_i}", model.vertices, tris, wireframe=False)
 		ob["flag"] = model.flag
 		ob["add_shells"] = num_add_shells
-		
-		LOD(ob, lod_i)
+
 		# additionally keep track here so we create a node tree only once during import
 		# but make sure that we overwrite existing materials:
 		if model.material not in created_materials:
@@ -426,7 +432,7 @@ def load(operator, context, filepath = "", use_custom_normals = False, mirror_me
 				# no_array.append(model.tangents[vertex_index])
 			face.use_smooth = True
 			# and for rendering, make sure each poly is assigned to the material
-			face.material_index = 0
+			# face.material_index = 0
 		
 		# set normals
 		if use_custom_normals:
@@ -466,6 +472,9 @@ def load(operator, context, filepath = "", use_custom_normals = False, mirror_me
 		# link to armature, only after mirror so the order is good and weights are mirrored
 		if data.bone_info:
 			append_armature_modifier(ob, b_armature_obj)
+
+		# only set the lod index here so that hiding it does not mess with any operators applied above
+		LOD(ob, lod_i)
 
 	print(f"Finished MDL2 import in {time.time()-start_time:.2f} seconds!")
 	return errors
