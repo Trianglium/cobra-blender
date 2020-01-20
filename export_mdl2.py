@@ -51,10 +51,22 @@ def ensure_tri_modifier(ob):
 def save(operator, context, filepath=''):
 	errors = []
 	start_time = time.time()
+
+	# ensure that we have objects in the scene
+	if bpy.context.scene.objects:
+		# operator needs an active object, set one if missing (eg. user had deleted the active object)
+		if not bpy.context.view_layer.objects.active:
+			bpy.context.view_layer.objects.active = bpy.context.scene.objects[0]
+		# now enter object mode on the active object, if we aren't already in it
+		bpy.ops.object.mode_set(mode="OBJECT")
+	else:
+		return ("No objects in scene, nothing to export!", )
+
 	print(f"\nExporting {filepath} into export subfolder...")
 	if not os.path.isfile(filepath):
 		errors.append(f"{filepath} does not exist. You must open an existing MDL2 file for exporting.")
 		return errors
+
 	data = Ms2Format.Data()
 	# open file for binary reading
 	with open(filepath, "rb") as stream:
@@ -64,7 +76,7 @@ def save(operator, context, filepath=''):
 		# clear pose
 		for pbone in b_armature_ob.pose.bones:
 			pbone.matrix_basis = mathutils.Matrix()
-		# bpy.context.scene.update()
+
 		bone_names = data.bone_names
 		# used to get index from bone name for faster weights
 		bones_table = dict( (bone_name_for_blender(bone_name), bone_i) for bone_i, bone_name in enumerate(bone_names) )
