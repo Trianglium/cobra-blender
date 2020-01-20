@@ -15,6 +15,7 @@ C:\Windows\system32>cd C:\Program Files\Blender Foundation\Blender 2.81\2.81\pyt
 
 C:\Program Files\Blender Foundation\Blender 2.81\2.81\python\bin>python.exe -m pip install PyFFI==2.2.4.dev3
 ```
+Alternatively, you can copy the `pyffi` folder from your system's python into the appropriate spot in blender's python folder.
 
 ### How To Use
 
@@ -24,7 +25,7 @@ C:\Program Files\Blender Foundation\Blender 2.81\2.81\python\bin>python.exe -m p
 #### Exporting Models
 - `File` > `Export` > `Cobra Model (.MDL2)`.
 - Select the source model, the exported model will be created in a subfolder called `export`.
-- Model names are crucial; object naming convention has to be enforced.
+- Model names are crucial; object naming convention has to be enforced. The object name suffix `_modelX` (with `X` being an integral number) determines which MDL2 model is targeted.
 
 ### Known Limitations
 - Same model & LOD count.
@@ -37,10 +38,13 @@ C:\Program Files\Blender Foundation\Blender 2.81\2.81\python\bin>python.exe -m p
 Not all model files are supported at this time. Some may crash on import or export. Even if they (seemingly) import and export fine, the result is not guaranteed to work ingame.
 
 ### Legal Notice
-- This tool is developed under 'fair use' by enthusiasts and is not affiliated with Universal© or Frontier® in any form.
-- Use at your own risk. This tool may cause damage to you, your equipment or your data.
-- Do not use or modify these tools to circumvent copy protections; especially, do not try to unlock downloadable content for free or share official artwork or intellectual property or engage in so-called data mining to announce game content before an official announcement.
-- Mods made with the tools are not to have monetary value. Please do not charge money or ask for donations in order to download the mods or charge for exclusivity (even if temporary) of the mods.
+This software is developed under 'fair use' by enthusiasts and is not affiliated with Universal© or Frontier® in any form.
+
+By downloading and using this software, you agree to the following conditions:
+- **Use this software at your own risk.** It may cause damage to you, your equipment or your data. The authors are not responsible for your actions.
+- **Do not use this software to circumvent copy protections.** Especially, do not try to unlock downloadable content for free, share official artwork or intellectual property or engage in so-called data mining to announce game content before an official announcement.
+- **Do not seek monetary compensation for mods made with this software.** Do not charge money or ask for donations in order to download the mods. Do not accept payment in exchange for exclusive rights (even if temporary) to commissioners of mods.
+- **Secure permission to use other parties' work in your mods.** This includes but is not limited to using IP, artwork, skin designs and 3D models (eg. porting models from another game). If you don't have the approval of the copyright holder(s), be prepared to face the consequences.
 
 ### Credits
 - Planet Zoo, Cobra, Frontier and the Frontier Developments logo are trademarks or registered trademarks of Frontier Developments, plc.
