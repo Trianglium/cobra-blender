@@ -131,12 +131,6 @@ def save(operator, context, filepath=''):
 					errors.append(f"Model {ob.name} has {len(me.vertex_colors)} Vertex Color layers, but {num_vcols} were expected!")
 					return errors
 
-				uv_layer_lengths = [len(uv_layer.data) for uv_layer in me.uv_layers[:num_uvs]]
-				if uv_layer_lengths.count(uv_layer_lengths[0]) != num_uvs:
-					print(uv_layer_lengths, uv_layer_lengths.count(uv_layer_lengths[0]), num_uvs)
-					errors.append(f"UV layers for {ob.name} do not have the same length - blender bug?")
-					return errors
-
 				unweighted_vertices = []
 				tris = []
 				# tangents have to be pre-calculated
