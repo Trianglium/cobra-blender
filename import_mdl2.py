@@ -416,11 +416,11 @@ def load(operator, context, filepath = "", use_custom_normals = False, mirror_me
 				me.vertex_colors.new(name=f"RGBA{col_i}")
 				me.vertex_colors[-1].data.foreach_set("color", [c for col in [vcols[l.vertex_index] for l in me.loops] for c in col])
 
-		# me.vertex_colors.new("tangents")
-		# me.vertex_colors[-1].data.foreach_set("color", [c for col in [model.tangents[l.vertex_index] for l in me.loops] for c in col])
-		
-		# me.vertex_colors.new("normals")
-		# me.vertex_colors[-1].data.foreach_set("color", [c for col in [model.normals[l.vertex_index] for l in me.loops] for c in col])
+		# me.vertex_colors.new(name="tangents")
+		# me.vertex_colors[-1].data.foreach_set("color", [c for col in [model.tangents[l.vertex_index] for l in me.loops] for c in (*col, 1,)])
+		#
+		# me.vertex_colors.new(name="normals")
+		# me.vertex_colors[-1].data.foreach_set("color", [c for col in [model.normals[l.vertex_index] for l in me.loops] for c in (*col,1,)])
 		
 		# create vgroups and store weights
 		for i, vert	in enumerate(model.weights):
@@ -433,7 +433,9 @@ def load(operator, context, filepath = "", use_custom_normals = False, mirror_me
 		no_array = []
 		for face in me.polygons:
 			for vertex_index in face.vertices:
-				no_array.append(model.normals[vertex_index])
+				# no_array.append(model.normals[vertex_index])
+				no_array.append(mathutils.Vector(model.normals[vertex_index]).normalized())
+				# no_array.append((0,0,1))
 				# no_array.append(model.tangents[vertex_index])
 			face.use_smooth = True
 			# and for rendering, make sure each poly is assigned to the material
@@ -452,7 +454,7 @@ def load(operator, context, filepath = "", use_custom_normals = False, mirror_me
 		# 	me.update()
 		# 	bm.clear()
 		# 	bm.free()
-		
+
 		bpy.ops.object.mode_set(mode='EDIT')
 		if mirror_mesh:
 			bpy.ops.mesh.bisect(plane_co=(0, 0, 0), plane_no=(1, 0, 0), clear_inner=True)
