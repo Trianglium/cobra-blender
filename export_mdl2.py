@@ -146,6 +146,7 @@ def save(operator, context, filepath=''):
 
 				# defaults that may or may not be set later on
 				unk_0 = 0
+				residue = 1
 				fur_length = None
 				# loop faces and collect unique and repeated vertices
 				for face in me.polygons:
@@ -191,6 +192,8 @@ def save(operator, context, filepath=''):
 								# get the unk0
 								if vgroup_name == "unk0":
 									unk_0 = vertex_group.weight
+								elif vgroup_name == "residue":
+									residue = int(vertex_group.weight)
 								elif vgroup_name == "fur_length":
 									# only store this hack for shells, never for fins
 									if model.flag == 885:
@@ -229,7 +232,7 @@ def save(operator, context, filepath=''):
 							# split the list of tuples into two separate lists
 							bone_ids, bone_weights = zip(*w_s)
 							# store all raw blender data for pyffi
-							verts.append((position, normal, unk_0, tangent, bone_index, uvs, vcols, bone_ids, bone_weights, fur_length))
+							verts.append((position, residue, normal, unk_0, tangent, bone_index, uvs, vcols, bone_ids, bone_weights, fur_length))
 						tri.append(v_index)
 					tris.append(tri)
 
