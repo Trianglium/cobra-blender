@@ -218,8 +218,6 @@ def save(operator, context, filepath=''):
 								# normalize
 								for x in range(4):
 									w_s[x][1] /= sw
-								# skin partition
-								bone_index = w_s[0][0]
 							elif b_loop.vertex_index not in unweighted_vertices:
 								# print("Sum of weights",sw)
 								unweighted_vertices.append(b_loop.vertex_index)
@@ -231,6 +229,8 @@ def save(operator, context, filepath=''):
 							assert (len(w_s) == 4)
 							# split the list of tuples into two separate lists
 							bone_ids, bone_weights = zip(*w_s)
+							# get the index for the skin partition - the bone with the highest weight
+							bone_index = w_s[0][0]
 							# store all raw blender data for pyffi
 							verts.append((position, residue, normal, unk_0, tangent, bone_index, uvs, vcols, bone_ids, bone_weights, fur_length))
 						tri.append(v_index)
