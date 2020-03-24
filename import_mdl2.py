@@ -32,14 +32,6 @@ def load_mdl2(file_path):
 	return data
 
 
-def bone_name_for_blender(n):
-	if "def_r_" in n:
-		n = n.replace("def_r_", "def_")+".R"
-	if "def_l_" in n:
-		n = n.replace("def_l_", "def_")+".L"
-	return n
-
-
 def ovl_bones(b_armature_data):
 	# first just get the roots, then extend it
 	roots = [bone for bone in b_armature_data.bones if not bone.parent]
@@ -68,7 +60,7 @@ def import_armature(data):
 		# b_armature_obj = create_ob(armature_name, b_armature_data)
 		# b_armature_obj.show_in_front = True
 		# # LOD(b_armature_obj, 10)
-		# bone_names = [bone_name_for_blender(n) for n in data.bone_names]
+		# bone_names = [matrix_util.bone_name_for_blender(n) for n in data.bone_names]
 		# # print(bone_names)
 		# # print("ovl order")
 		# # make armature editable and create bones
@@ -113,7 +105,7 @@ def import_armature(data):
 		b_armature_obj = create_ob(armature_name, b_armature_data)
 		b_armature_obj.show_in_front = True
 		# LOD(b_armature_obj, 10)
-		bone_names = [bone_name_for_blender(n) for n in data.bone_names]
+		bone_names = [matrix_util.bone_name_for_blender(n) for n in data.bone_names]
 		# make armature editable and create bones
 		bpy.ops.object.mode_set(mode='EDIT', toggle=False)
 		mats = {}
@@ -425,7 +417,7 @@ def load(operator, context, filepath = "", use_custom_normals = False, mirror_me
 		# create vgroups and store weights
 		for i, vert	in enumerate(model.weights):
 			for bonename, weight in vert:
-				bonename = bone_name_for_blender(bonename)
+				bonename = matrix_util.bone_name_for_blender(bonename)
 				if bonename not in ob.vertex_groups: ob.vertex_groups.new( name = bonename )
 				ob.vertex_groups[bonename].add([i], weight, 'REPLACE')
 

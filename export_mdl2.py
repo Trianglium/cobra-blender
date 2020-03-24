@@ -11,22 +11,6 @@ from .pyffi_ext.formats.ms2 import Ms2Format
 MAX_USHORT = 65535
 
 
-def bone_name_for_blender(n):
-	if "def_r_" in n:
-		n = n.replace("def_r_", "def_")+".R"
-	if "def_l_" in n:
-		n = n.replace("def_l_", "def_")+".L"
-	return n
-
-
-def bone_name_for_ovl(n):
-	if n.endswith(".R"):
-		n = n[:-2].replace("def_", "def_r_")
-	if n.endswith(".L"):
-		n = n[:-2].replace("def_", "def_l_")
-	return n
-
-
 def get_armature():
 	src_armatures = [ob for ob in bpy.data.objects if type(ob.data) == bpy.types.Armature]
 	# do we have armatures?
@@ -93,7 +77,7 @@ def save(operator, context, filepath='', apply_transforms=False):
 
 		bone_names = data.bone_names
 		# used to get index from bone name for faster weights
-		bones_table = dict( (bone_name_for_blender(bone_name), bone_i) for bone_i, bone_name in enumerate(bone_names) )
+		bones_table = dict( (matrix_util.bone_name_for_blender(bone_name), bone_i) for bone_i, bone_name in enumerate(bone_names) )
 
 		# ensure that these are initialized
 		for model in data.mdl2_header.models:

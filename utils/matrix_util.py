@@ -2,12 +2,36 @@ import mathutils
 import math
 from bpy_extras.io_utils import axis_conversion
 
+# a tuple of prefix, clipped prefix, suffix
+naming_convention = (
+	("def_r_", "def_", ".R"),
+	("def_l_", "def_", ".L"),
+)
+
+
+def bone_name_for_blender(n):
+	"""Appends a suffix to the end if relevant prefix was found"""
+	for prefix, clipped_prefix, suffix in naming_convention:
+		if prefix in n:
+			n = n.replace(prefix, clipped_prefix)+suffix
+	return n
+
+
+def bone_name_for_ovl(n):
+	"""Restores the proper prefix if relevant suffix was found"""
+	for prefix, clipped_prefix, suffix in naming_convention:
+		if n.endswith(suffix):
+			n = n.replace(suffix, "").replace(clipped_prefix, prefix)
+	return n
+
+
 def nif_bind_to_blender_bind(nif_armature_space_matrix):
 	# post multiplication: local space
 	# return correction_inv * correction * nif_armature_space_matrix * correction_inv
 	return correction_glob @ nif_armature_space_matrix @ correction_inv
 	# return nif_armature_space_matrix * correction_inv
-	
+
+
 def set_bone_orientation(from_forward, from_up):
 	# if version in (0x14020007, ):
 	#	skyrim
