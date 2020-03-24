@@ -77,6 +77,7 @@ class ExportMDL2(bpy.types.Operator, ExportHelper):
 	bl_label = 'Export MDL2'
 	filename_ext = ".MDL2"
 	filter_glob: StringProperty(default="*.MDL2", options={'HIDDEN'})
+	apply_transforms: BoolProperty(name="Apply Transforms", description="Automatically applies object transforms to meshes.", default=False)
 	
 	def execute(self, context):
 		from . import export_mdl2

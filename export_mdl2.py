@@ -48,7 +48,21 @@ def ensure_tri_modifier(ob):
 		ob.modifiers.new('Triangulate', 'TRIANGULATE')
 
 
-def save(operator, context, filepath=''):
+def handle_transforms(ob, me, errors, apply=True):
+	"""Ensures that non-zero object transforms are either applied or reported"""
+	identity = mathutils.Matrix()
+	# the world space transform of every rigged mesh must be neutral
+	if ob.matrix_world != identity:
+		if apply:
+			# we only transform the evaluated mesh and leave the actual scene alone
+			me.transform(ob.matrix_world)
+			errors.append(ob.name+" has had its object transforms applied on the fly to avoid ingame distortion!")
+		else:
+			# we simply ignore the transforms and export the mesh as is, but warn the user
+			errors.append(f"Ignored object transforms for {ob.name} - orientation will not match what you see in blender!")
+
+
+def save(operator, context, filepath='', apply_transforms=False):
 	errors = []
 	start_time = time.time()
 
@@ -97,6 +111,7 @@ def save(operator, context, filepath=''):
 				dg = bpy.context.evaluated_depsgraph_get()
 				eval_obj = ob.evaluated_get(dg)
 				me = eval_obj.to_mesh(preserve_all_data_layers=True, depsgraph=dg)
+				handle_transforms(eval_obj, me, errors, apply=apply_transforms)
 
 				# get the index of this model in the mdl2 model buffer
 				try:
