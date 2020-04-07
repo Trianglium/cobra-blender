@@ -17,7 +17,7 @@ def get_armature():
 	if src_armatures:
 		# see if one of these is selected
 		if len(src_armatures) > 1:
-			sel_armatures = [ob for ob in src_armatures if ob.select]
+			sel_armatures = [ob for ob in src_armatures if ob.select_get()]
 			if sel_armatures:
 				return sel_armatures[0]
 		return src_armatures[0]
@@ -71,6 +71,10 @@ def save(operator, context, filepath='', apply_transforms=False):
 		data.read(stream, data, file=filepath, quick=True)
 
 		b_armature_ob = get_armature()
+		if not b_armature_ob:
+			errors.append(f"No armature was found - did you delete it?")
+			return errors
+
 		# clear pose
 		for pbone in b_armature_ob.pose.bones:
 			pbone.matrix_basis = mathutils.Matrix()
