@@ -254,7 +254,7 @@ def create_material(matcol_path):
 			textures.append( None )
 			continue
 		print("Slot",i)
-
+		slotnum = i
 		# load the tiled texture
 		tex = load_tex(tree, texture)
 		# load the blendweights layer mask
@@ -311,7 +311,7 @@ def create_material(matcol_path):
 		for i_b in range(4):
 			indices.append(i_a + i_b*4)
 
-	indices = list( i for i in range(16) )
+	indices = list( i for i in range(slotnum) )
 	print(indices)
 
 	normal_path = os.path.join(matdir, matname + ".pnormaltexture.png")
