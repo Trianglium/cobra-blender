@@ -137,7 +137,7 @@ def import_armature(data):
 			b_bind = matrix_util.nif_bind_to_blender_bind(n_bind)
 
 			# set orientation to blender bone
-			tail, roll = matrix_util.mat3_to_vec_roll(b_bind.to_3x3())
+			tail, roll = bpy.types.Bone.AxisRollFromMatrix(b_bind.to_3x3())
 			b_edit_bone.head = b_bind.to_translation()
 			b_edit_bone.tail = tail + b_edit_bone.head
 			b_edit_bone.roll = roll
