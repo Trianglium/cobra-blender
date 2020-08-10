@@ -93,7 +93,13 @@ def build_fins(src_ob):
 	# Finish up, write the bmesh back to the mesh
 	bm.to_mesh(me)
 	bm.free()	 # free and prevent further access
-		
+
+	# remove fur_length vgroup
+	fl = "fur_length"
+	if fl in ob.vertex_groups:
+		vg = ob.vertex_groups[fl]
+		ob.vertex_groups.remove(vg)
+
 	success = '\nFinished Shell generation'
 	print(success)
 	
