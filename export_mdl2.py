@@ -146,7 +146,6 @@ def save(operator, context, filepath='', apply_transforms=False):
 				dummy_vertices = {}
 				count_unique = 0
 				count_reused = 0
-
 				# defaults that may or may not be set later on
 				unk_0 = 0
 				residue = 1
@@ -199,7 +198,7 @@ def save(operator, context, filepath='', apply_transforms=False):
 									residue = int(vertex_group.weight)
 								elif vgroup_name == "fur_length":
 									# only store this hack for shells, never for fins
-									if model.flag == 885:
+									if model.flag in (885,1013,821):
 										fur_length = vertex_group.weight
 								else:
 									# avoid check for dummy vertex groups without corresponding bones
@@ -243,9 +242,10 @@ def save(operator, context, filepath='', apply_transforms=False):
 				print("count_reused",count_reused)
 
 				# report unweighted vertices
-				if unweighted_vertices:
-					errors.append(f"{ob.name} has {len(unweighted_vertices)} unweighted vertices!")
-					return errors
+				if model.flag not in (513,):
+					if unweighted_vertices:
+						errors.append(f"{ob.name} has {len(unweighted_vertices)} unweighted vertices!")
+						return errors
 
 				# set shell count if not present
 				if "add_shells" in ob:
