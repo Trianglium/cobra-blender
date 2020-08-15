@@ -370,7 +370,7 @@ def load(operator, context, filepath = "", use_custom_normals = False, mirror_me
 		print("flag", model.flag)
 		print("bits", bin(model.flag))
 		tris = model.tris
-		if model.flag in (565, 885):
+		if model.flag in (1013, 821, 885, 565):
 			tris = model.tris[:len(model.tris)//6]
 			print("automatically stripped shells from ",model_i)
 			num_add_shells = 5
