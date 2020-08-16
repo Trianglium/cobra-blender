@@ -142,7 +142,7 @@ def build_uv(ob, bm):
 			for face in ring:
 				
 				# update X coords
-				length = face.edges[0].calc_length()
+				length = face.edges[0].calc_length()*6
 				# left edges
 				for loop in (face.loops[0],face.loops[3]):
 					loop[uv_lay].uv.x = -16.0 + x_0
@@ -163,7 +163,7 @@ def build_uv(ob, bm):
 
 					if group_index in dvert:
 						weight = dvert[group_index]
-						loop[uv_lay].uv.y = 1-(weight*4)
+						loop[uv_lay].uv.y = 1-(weight*2)
 			
 	print("Finished UV generation")
 	
