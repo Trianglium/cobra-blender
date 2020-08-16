@@ -74,13 +74,16 @@ def build_fins(src_ob):
 	bm.faces.ensure_lookup_table()
 	# Extrude and create geometry on side 'b'
 	normals = [v.normal for v in bm.verts]
+	lower_verts = bm.verts
 	ret = bmesh.ops.extrude_edge_only( bm, edges=edges_start_a)
 	geom_extrude = ret["geom"]
 	verts_extrude = [ele for ele in geom_extrude if isinstance(ele, bmesh.types.BMVert)]
 	
 	# move each extruded verts out across the surface normal
 	for v, n in zip(verts_extrude, normals):
-		v.co += (n*0.01)
+		v.co += (n*0.00001)
+	
+
 	
 	# now delete all old faces, but only faces
 	# We have to pass these as ints
@@ -89,7 +92,7 @@ def build_fins(src_ob):
 	
 	# build uv1 coords
 	build_uv(ob, bm)
-	
+
 	# Finish up, write the bmesh back to the mesh
 	bm.to_mesh(me)
 	bm.free()	 # free and prevent further access
@@ -99,7 +102,7 @@ def build_fins(src_ob):
 	if fl in ob.vertex_groups:
 		vg = ob.vertex_groups[fl]
 		ob.vertex_groups.remove(vg)
-
+	ob["flag"] = 565
 	success = '\nFinished Shell generation'
 	print(success)
 	
@@ -154,7 +157,7 @@ def build_uv(ob, bm):
 				# update Y coords
 				# top edge
 				for loop in face.loops[:2]:
-					loop[uv_lay].uv.y = 1
+					loop[uv_lay].uv.y = 1.00049
 				# lower edge
 				for loop in face.loops[2:]:
 					vert = loop.vert
