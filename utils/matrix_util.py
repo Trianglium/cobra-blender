@@ -1,5 +1,6 @@
 import mathutils
 import math
+import bpy
 from bpy_extras.io_utils import axis_conversion
 
 # a tuple of prefix, clipped prefix, suffix
@@ -58,27 +59,56 @@ set_bone_orientation("-X", "Y")
 def import_matrix(m):
 	"""Retrieves a niBlock's transform matrix as a Mathutil.Matrix."""
 	return mathutils.Matrix( m.as_list() )#.transposed()
-	
+
 def decompose_srt(matrix):
-    """Decompose Blender transform matrix as a scale, rotation matrix, and
-    translation vector."""
+	"""Decompose Blender transform matrix as a scale, rotation matrix, and
+	translation vector."""
 
-    # get matrix components
-    trans_vec, rot_quat, scale_vec = matrix.decompose()
+	# get matrix components
+	trans_vec, rot_quat, scale_vec = matrix.decompose()
 
-    #obtain a combined scale and rotation matrix to test determinate
-    rotmat = rot_quat.to_matrix()
-    scalemat = mathutils.Matrix(   ((scale_vec[0], 0.0, 0.0),
-                                    (0.0, scale_vec[1], 0.0),
-                                    (0.0, 0.0, scale_vec[2])) )
-    scale_rot = scalemat * rotmat
+	#obtain a combined scale and rotation matrix to test determinate
+	rotmat = rot_quat.to_matrix()
+	scalemat = mathutils.Matrix(   ((scale_vec[0], 0.0, 0.0),
+									(0.0, scale_vec[1], 0.0),
+									(0.0, 0.0, scale_vec[2])) )
+	scale_rot = scalemat * rotmat
 
-    # and fix their sign
-    if (scale_rot.determinant() < 0): scale_vec.negate()
-    # only uniform scaling
-    # allow rather large error to accomodate some nifs
-    if abs(scale_vec[0]-scale_vec[1]) + abs(scale_vec[1]-scale_vec[2]) > 0.02:
-        NifLog.warn("Non-uniform scaling not supported." +
-            " Workaround: apply size and rotation (CTRL-A).")
-    return [scale_vec[0], rotmat, trans_vec]
+	# and fix their sign
+	if (scale_rot.determinant() < 0): scale_vec.negate()
+	# only uniform scaling
+	# allow rather large error to accomodate some nifs
+	if abs(scale_vec[0]-scale_vec[1]) + abs(scale_vec[1]-scale_vec[2]) > 0.02:
+		NifLog.warn("Non-uniform scaling not supported." +
+			" Workaround: apply size and rotation (CTRL-A).")
+	return [scale_vec[0], rotmat, trans_vec]
 
+
+def get_lod(ob):
+	for coll in bpy.data.collections:
+		if "LOD" in coll.name and ob.name in coll.objects:
+			return coll.name
+
+
+def LOD(ob, level=0, lod=None):
+	# level is given, but not lod
+	if not lod:
+		lod = "LOD"+str(level)
+	# lod is given, but no level
+	else:
+		level = int(lod[3:])
+		print(level)
+	if lod not in bpy.data.collections:
+		coll = bpy.data.collections.new(lod)
+		bpy.context.scene.collection.children.link(coll)
+	else:
+		coll = bpy.data.collections[lod]
+	# Link active object to the new collection
+	coll.objects.link(ob)
+	# show lod 0, hide the others
+	should_hide = level != 0
+	# get view layer, hide collection there
+	vlayer = bpy.context.view_layer
+	vlayer.layer_collection.children[lod].hide_viewport = should_hide
+	# hide object in view layer
+	ob.hide_set(should_hide, view_layer=vlayer)

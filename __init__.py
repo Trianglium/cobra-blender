@@ -109,7 +109,7 @@ class StripShells(bpy.types.Operator):
 
 
 class CreateFins(bpy.types.Operator):
-	"""Create fins from current base geometry"""
+	"""Create fins for all objects with shells, and overwrite existing fin geometry"""
 	bl_idname = "object.create_fins"
 	bl_label = "Create Fins"
 	bl_options = {'REGISTER', 'UNDO'}
@@ -117,7 +117,8 @@ class CreateFins(bpy.types.Operator):
 	def execute(self, context):
 		from .utils import shell
 		try:
-			shell.create_fins_wrapper()
+			for msg in shell.create_fins_wrapper():
+				self.report({"INFO"}, msg)
 		except Exception as err:
 			self.report({"ERROR"}, str(err))
 			print(err)

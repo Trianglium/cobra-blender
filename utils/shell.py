@@ -5,6 +5,7 @@ import mathutils
 import math
 import bmesh
 
+from . import matrix_util
 
 def copy_ob(src_obj):
 	new_obj = src_obj.copy()
@@ -23,9 +24,14 @@ def strip_shells_wrapper(shell_count=6):
 
 	
 def create_fins_wrapper():
-	for ob in bpy.context.selected_objects:
-		if ob.type == "MESH":
-			build_fins(ob)
+	msgs = []
+	for lod_i in range(6):
+		lod_group_name = "LOD"+str(lod_i)
+		src_ob = get_ob_from_lod_and_flags(lod_group_name, flags=[885, 821, 1013, ])
+		trg_ob = get_ob_from_lod_and_flags(lod_group_name, flags=[565, ])
+		if src_ob and trg_ob:
+			msgs.append(build_fins(src_ob, trg_ob))
+	return msgs
 
 
 def strip_shells(ob, shell_count=6):
@@ -47,22 +53,37 @@ def strip_shells(ob, shell_count=6):
 	bm.to_mesh(me)
 	bm.free()	 # free and prevent further access
 	ob["add_shells"] = shell_count-1
-	
+
 	success = '\nFinished Shell generation'
 	print(success)
 
 
-def build_fins(src_ob):
-	
+def get_ob_from_lod_and_flags(lod_group_name, flags=[565, ]):
+	for coll in bpy.data.collections:
+		if lod_group_name in coll.name:
+			for ob in coll.objects:
+				if ob["flag"] in flags:
+					return ob
+
+
+def build_fins(src_ob, trg_ob):
+
+	lod_group_name = matrix_util.get_lod(src_ob)
 	ob = copy_ob(src_ob)
-	
+
+	# rename new object
+	trg_name = trg_ob.name
+	trg_ob.name += "dummy"
+	ob.name = trg_name
+	# delete old target
+	bpy.data.objects.remove(trg_ob, do_unlink=True)
+
 	# set up copy of normals from src mesh
 	mod = ob.modifiers.new('DataTransfer', 'DATA_TRANSFER')
 	mod.object = src_ob
 	mod.use_loop_data = True
 	mod.data_types_loops = { "CUSTOM_NORMAL", }
-	
-	
+
 	me = ob.data
 	# needed for custom normals
 	me.use_auto_smooth = True
@@ -74,7 +95,6 @@ def build_fins(src_ob):
 	bm.faces.ensure_lookup_table()
 	# Extrude and create geometry on side 'b'
 	normals = [v.normal for v in bm.verts]
-	lower_verts = bm.verts
 	ret = bmesh.ops.extrude_edge_only( bm, edges=edges_start_a)
 	geom_extrude = ret["geom"]
 	verts_extrude = [ele for ele in geom_extrude if isinstance(ele, bmesh.types.BMVert)]
@@ -82,9 +102,7 @@ def build_fins(src_ob):
 	# move each extruded verts out across the surface normal
 	for v, n in zip(verts_extrude, normals):
 		v.co += (n*0.00001)
-	
 
-	
 	# now delete all old faces, but only faces
 	# We have to pass these as ints
 	# DEL_VERTS = 1 DEL_EDGES = 2 DEL_ONLYFACES = 3 DEL_EDGESFACES = 4 DEL_FACES = 5 DEL_ALL = 6 DEL_ONLYTAGGED = 7
@@ -103,9 +121,13 @@ def build_fins(src_ob):
 		vg = ob.vertex_groups[fl]
 		ob.vertex_groups.remove(vg)
 	ob["flag"] = 565
-	success = '\nFinished Shell generation'
-	print(success)
-	
+
+	# only set the lod index here so that hiding it does not mess with any operators applied above
+	matrix_util.LOD(ob, None, lod=lod_group_name)
+
+	return f'Generated fin geometry {trg_name} from {src_ob.name}'
+
+
 def get_face_ring(face):
 	strip = [face, ]
 	for i in range(10):
@@ -176,8 +198,3 @@ if __name__ == "__main__":
 	build_fins(src_ob)
 	src_ob = bpy.data.objects["gray_wolf_male.mdl2_LOD1_model23"]
 	build_fins(src_ob)
-
-	# src_ob = bpy.data.objects["gray_wolf_male.mdl2_LOD0_model22"]
-	# strip_shells(src_ob)
-	# src_ob = bpy.data.objects["gray_wolf_male.mdl2_LOD0_model24"]
-	# strip_shells(src_ob)
