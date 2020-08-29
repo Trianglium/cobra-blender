@@ -13,6 +13,17 @@ from .pyffi_ext.formats.ms2 import Ms2Format
 from .pyffi_ext.formats.fgm import FgmFormat
 
 
+def add_psys(ob):
+	name = "hair"
+	ps_mod = ob.modifiers.new(name, 'PARTICLE_SYSTEM')
+	psys = ob.particle_systems[ps_mod.name]
+	psys.settings.count = len(ob.data.vertices)
+	psys.settings.type = 'HAIR'
+	psys.settings.emit_from = 'VERT'
+	psys.settings.use_emit_random = False
+	psys.settings.hair_length = 1.0
+	psys.vertex_group_length = "fur_length"
+
 def get_data(p, d):
 	dat = d()
 	with open(p, "rb") as stream:
@@ -453,7 +464,8 @@ def load(operator, context, filepath = "", use_custom_normals = False, mirror_me
 		# link to armature, only after mirror so the order is good and weights are mirrored
 		if data.bone_info:
 			append_armature_modifier(ob, b_armature_obj)
-
+		if model.flag in (1013, 821, 885):
+			add_psys(ob)
 		# only set the lod index here so that hiding it does not mess with any operators applied above
 		matrix_util.LOD(ob, lod_i)
 
