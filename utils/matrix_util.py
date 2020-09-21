@@ -28,28 +28,34 @@ def bone_name_for_ovl(n):
 
 def nif_bind_to_blender_bind(nif_armature_space_matrix):
 	# post multiplication: local space
-	# return correction_inv * correction * nif_armature_space_matrix * correction_inv
-	return correction_glob @ nif_armature_space_matrix @ correction_inv
-	# return nif_armature_space_matrix * correction_inv
+	return xflip @ (correction_glob @ nif_armature_space_matrix @ correction_inv)
 
+
+def blender_bind_to_nif_bind(blender_armature_space_matrix):
+	return correction_glob_inv @ (xflip @ blender_armature_space_matrix) @ correction
+
+
+def get_bind_matrix(bone):
+	"""Get a nif armature-space matrix from a blender bone. """
+	bind = correction @ correction_inv @ bone.matrix_local @ correction
+	if bone.parent:
+		p_bind_restored = correction @ correction_inv @ bone.parent.matrix_local @ correction
+		bind = p_bind_restored.inverted() @ bind
+	return bind
 
 def set_bone_orientation(from_forward, from_up):
-	# if version in (0x14020007, ):
-	#	skyrim
-	#	from_forward = "Z"
-	#	from_up = "Y"
-	# else:
-	#	ZT2 and other old ones
-	#	from_forward = "X"
-	#	from_up = "Y"
 	global correction
 	global correction_inv
 	correction = axis_conversion(from_forward, from_up).to_4x4()
 	correction_inv = correction.inverted()
 #from_forward='Y', from_up='Z', to_forward='Y', to_up='Z'
 correction_glob = axis_conversion("-Z", "Y").to_4x4()
+correction_glob_inv = correction_glob.inverted()
 # mirror about x axis too:
-correction_glob[0][0] = -1
+xflip = mathutils.Matrix().to_4x4()
+xflip[0][0] = -1
+xflip_inv = xflip.inverted()
+# correction_glob_inv[0][0] = -1
 # set these from outside using set_bone_correction_from_version once we have a version number
 correction = None
 correction_inv = None
@@ -59,6 +65,7 @@ set_bone_orientation("-X", "Y")
 def import_matrix(m):
 	"""Retrieves a niBlock's transform matrix as a Mathutil.Matrix."""
 	return mathutils.Matrix( m.as_list() )#.transposed()
+
 
 def decompose_srt(matrix):
 	"""Decompose Blender transform matrix as a scale, rotation matrix, and
