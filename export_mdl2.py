@@ -88,6 +88,7 @@ def save(operator, context, filepath='', apply_transforms=False):
 		old_bone_names = [matrix_util.bone_name_for_blender(n) for n in data.bone_names]
 		boness = b_armature_ob.data.bones
 		bpy.ops.object.mode_set(mode='EDIT', toggle=False)
+		#edit_bones = b_armature_ob.data.edit_bones
 		mats = {}
 		bones = data.bone_info.jwe_bones
 		idx = 0
@@ -96,30 +97,20 @@ def save(operator, context, filepath='', apply_transforms=False):
 				print(idx)
 			else:
 				bbb = boness.get(bone_name)
+				#ebb = edit_bones(bone_name)
 				print(bone_name)
 				print(data.bone_info.inverse_bind_matrices[idx])
+				print("old: ",bb)
 				#print(matrix_util.nif_bind_to_blender_bind(matrix_util.import_matrix(data.bone_info.inverse_bind_matrices[idx]).inverted_safe()))
 				if bbb.parent is None:
 					mat_local_to_parent = bbb.matrix_local
 				else:
 					parent_name = old_bone_names[o_parent_ind]
 					mat_local_to_parent = bbb.parent.matrix_local.inverted() @ bbb.matrix_local
-				pos,quat,sca = mat_local_to_parent.decompose()
-				#print(bbb.matrix_local)
-				old_bind = mathutils.Quaternion((bb.rot.w, bb.rot.x, bb.rot.y, bb.rot.z)).to_matrix().to_4x4()
-				old_bind.translation = (bb.loc.x, bb.loc.y, bb.loc.z)
-				if bbb.parent is not None:
-					old_bind = mats[parent_name] @ old_bind
-				#bb.loc.x,bb.loc.y,bb.loc.z = -1*pos.y,pos.z,pos.x
-				#bb.rot.x, bb.rot.y, bb.rot.z, bb.rot.w = quat.y, -1*quat.z, -1*quat.x, quat.w
-				bb.set_bone(mat_local_to_parent)#bb.scale = sca.x
-				new_bind = mathutils.Quaternion((bb.rot.w, bb.rot.x, bb.rot.y, bb.rot.z)).to_matrix().to_4x4()
-				new_bind.translation = (bb.loc.x, bb.loc.y, bb.loc.z)
-				if bbb.parent is not None:
-					new_bind = mats[parent_name] @ new_bind
-				print(old_bind)
-				print(bb)
-				print("pos: ",pos," quat: ",quat," sca: ",sca)
+				data.bone_info.inverse_bind_matrices[idx].set_rows(*matrix_util.blender_bind_to_nif_bind(bbb.matrix_local).inverted())
+				print(data.bone_info.inverse_bind_matrices[idx])
+				bb.set_bone(mat_local_to_parent)
+
 				print(" ")
 				print("new: ",bb)
 			idx+=1
