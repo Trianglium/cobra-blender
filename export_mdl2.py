@@ -83,38 +83,23 @@ def save(operator, context, filepath='', apply_transforms=False):
 		bone_names = data.bone_names
 		# used to get index from bone name for faster weights
 		bones_table = dict( (matrix_util.bone_name_for_blender(bone_name), bone_i) for bone_i, bone_name in enumerate(bone_names) )
-		#old_bone_info = data.bone_info
-		bone_parents = data.bone_info.bone_parents#old_bones = old_bone_info.jwe_bones
-		old_bone_names = [matrix_util.bone_name_for_blender(n) for n in data.bone_names]
-		boness = b_armature_ob.data.bones
-		bpy.ops.object.mode_set(mode='EDIT', toggle=False)
-		#edit_bones = b_armature_ob.data.edit_bones
-		mats = {}
-		bones = data.bone_info.jwe_bones
-		idx = 0
-		for bone_name, bb, o_parent_ind in zip(old_bone_names, bones, bone_parents):
-			if idx in (0,1):
-				print(idx)
-			else:
-				bbb = boness.get(bone_name)
-				#ebb = edit_bones(bone_name)
-				print(bone_name)
-				print(data.bone_info.inverse_bind_matrices[idx])
-				print("old: ",bb)
-				#print(matrix_util.nif_bind_to_blender_bind(matrix_util.import_matrix(data.bone_info.inverse_bind_matrices[idx]).inverted_safe()))
-				if bbb.parent is None:
-					mat_local_to_parent = bbb.matrix_local
-				else:
-					parent_name = old_bone_names[o_parent_ind]
-					mat_local_to_parent = bbb.parent.matrix_local.inverted() @ bbb.matrix_local
-				data.bone_info.inverse_bind_matrices[idx].set_rows(*matrix_util.blender_bind_to_nif_bind(bbb.matrix_local).inverted())
-				print(data.bone_info.inverse_bind_matrices[idx])
-				bb.set_bone(mat_local_to_parent)
 
-				print(" ")
-				print("new: ",bb)
-			idx+=1
-		bpy.ops.object.mode_set(mode='OBJECT', toggle=False)
+		bones = data.bone_info.jwe_bones
+		for b_bone_name, n_index in bones_table.items():
+			if n_index in (0,1):
+				continue
+			b_bone = b_armature_ob.data.bones[b_bone_name]
+			n_bone = bones[n_index]
+			if b_bone.parent:
+				b_mat_local = b_bone.parent.matrix_local.inverted() @ b_bone.matrix_local
+			else:
+				b_mat_local = b_bone.matrix_local
+			n_mat_armature = matrix_util.blender_bind_to_nif_bind(b_bone.matrix_local)
+			n_mat_local = matrix_util.blender_bind_to_nif_bind(b_mat_local)
+			data.bone_info.inverse_bind_matrices[n_index].set_rows(*n_mat_armature.inverted())
+			# todo - this is hacky - use n_mat_local instead and remove swizzling in set_bone()
+			n_bone.set_bone(b_mat_local)
+
 		# ensure that these are initialized
 		for model in data.mdl2_header.models:
 			model.tri_indices = []
