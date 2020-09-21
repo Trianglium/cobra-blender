@@ -28,11 +28,17 @@ def bone_name_for_ovl(n):
 
 def nif_bind_to_blender_bind(nif_armature_space_matrix):
 	# post multiplication: local space
-	return xflip @ (correction_glob @ nif_armature_space_matrix @ correction_inv)
+	y = correction_glob @ nif_armature_space_matrix @ correction_inv
+	return xflip @ y
 
+def xflipper(nif_armature_space_matrix):
+	return nif_armature_space_matrix @ xflip
 
 def blender_bind_to_nif_bind(blender_armature_space_matrix):
-	return correction_glob_inv @ (xflip @ blender_armature_space_matrix) @ correction
+	bind =  blender_armature_space_matrix @ xflip
+	y = xflip.inverted() @ bind
+	b = correction_glob.inverted() @ y @ correction_inv.inverted()
+	return b
 
 
 def get_bind_matrix(bone):
