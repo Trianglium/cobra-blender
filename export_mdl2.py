@@ -4,7 +4,7 @@ import struct
 
 import bpy
 import mathutils
-
+import math
 from .utils import matrix_util
 from .pyffi_ext.formats.ms2 import Ms2Format
 
@@ -21,6 +21,8 @@ def get_armature():
 			if sel_armatures:
 				return sel_armatures[0]
 		return src_armatures[0]
+
+
 
 
 def ensure_tri_modifier(ob):
@@ -74,7 +76,6 @@ def save(operator, context, filepath='', apply_transforms=False):
 		if not b_armature_ob:
 			errors.append(f"No armature was found - did you delete it?")
 			return errors
-
 		# clear pose
 		for pbone in b_armature_ob.pose.bones:
 			pbone.matrix_basis = mathutils.Matrix()
@@ -82,7 +83,47 @@ def save(operator, context, filepath='', apply_transforms=False):
 		bone_names = data.bone_names
 		# used to get index from bone name for faster weights
 		bones_table = dict( (matrix_util.bone_name_for_blender(bone_name), bone_i) for bone_i, bone_name in enumerate(bone_names) )
-
+		#old_bone_info = data.bone_info
+		bone_parents = data.bone_info.bone_parents#old_bones = old_bone_info.jwe_bones
+		old_bone_names = [matrix_util.bone_name_for_blender(n) for n in data.bone_names]
+		boness = b_armature_ob.data.bones
+		bpy.ops.object.mode_set(mode='EDIT', toggle=False)
+		mats = {}
+		bones = data.bone_info.jwe_bones
+		idx = 0
+		for bone_name, bb, o_parent_ind in zip(old_bone_names, bones, bone_parents):
+			if idx in (0,1):
+				print(idx)
+			else:
+				bbb = boness.get(bone_name)
+				print(bone_name)
+				print(data.bone_info.inverse_bind_matrices[idx])
+				#print(matrix_util.nif_bind_to_blender_bind(matrix_util.import_matrix(data.bone_info.inverse_bind_matrices[idx]).inverted_safe()))
+				if bbb.parent is None:
+					mat_local_to_parent = bbb.matrix_local
+				else:
+					parent_name = old_bone_names[o_parent_ind]
+					mat_local_to_parent = bbb.parent.matrix_local.inverted() @ bbb.matrix_local
+				pos,quat,sca = mat_local_to_parent.decompose()
+				#print(bbb.matrix_local)
+				old_bind = mathutils.Quaternion((bb.rot.w, bb.rot.x, bb.rot.y, bb.rot.z)).to_matrix().to_4x4()
+				old_bind.translation = (bb.loc.x, bb.loc.y, bb.loc.z)
+				if bbb.parent is not None:
+					old_bind = mats[parent_name] @ old_bind
+				#bb.loc.x,bb.loc.y,bb.loc.z = -1*pos.y,pos.z,pos.x
+				#bb.rot.x, bb.rot.y, bb.rot.z, bb.rot.w = quat.y, -1*quat.z, -1*quat.x, quat.w
+				bb.set_bone(mat_local_to_parent)#bb.scale = sca.x
+				new_bind = mathutils.Quaternion((bb.rot.w, bb.rot.x, bb.rot.y, bb.rot.z)).to_matrix().to_4x4()
+				new_bind.translation = (bb.loc.x, bb.loc.y, bb.loc.z)
+				if bbb.parent is not None:
+					new_bind = mats[parent_name] @ new_bind
+				print(old_bind)
+				print(bb)
+				print("pos: ",pos," quat: ",quat," sca: ",sca)
+				print(" ")
+				print("new: ",bb)
+			idx+=1
+		bpy.ops.object.mode_set(mode='OBJECT', toggle=False)
 		# ensure that these are initialized
 		for model in data.mdl2_header.models:
 			model.tri_indices = []
